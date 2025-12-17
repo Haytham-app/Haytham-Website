@@ -882,6 +882,69 @@
   text-decoration: underline;
 }
 
+/* Error Styles */
+.error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.error-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-banner-header svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.error-list {
+  margin: 0;
+  padding-left: 1.75rem;
+  color: #dc2626;
+  font-size: 0.8125rem;
+}
+
+.error-list li {
+  margin-bottom: 0.25rem;
+}
+
+.error-list li:last-child {
+  margin-bottom: 0;
+}
+
+.required {
+  color: #dc2626;
+}
+
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea {
+  border-color: #dc2626;
+}
+
+.form-group.has-error input:focus,
+.form-group.has-error select:focus,
+.form-group.has-error textarea:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.field-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .form-card {

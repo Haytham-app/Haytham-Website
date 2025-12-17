@@ -140,6 +140,8 @@ function InquiryForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
 
   const [formData, setFormData] = useState({
     // Primary Contact
@@ -180,12 +182,123 @@ function InquiryForm() {
   );
   const totalSteps = selectedProjectType?.supports_multiple_events ? 5 : 4;
 
+  // Validation functions for each step
+  const validateStep1 = () => {
+    const stepErrors = {};
+
+    if (!formData.primary_name.trim()) {
+      stepErrors.primary_name = "Full name is required";
+    }
+    if (!formData.primary_email.trim()) {
+      stepErrors.primary_email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.primary_email)) {
+      stepErrors.primary_email = "Please enter a valid email";
+    }
+    if (!formData.primary_phone.trim()) {
+      stepErrors.primary_phone = "Phone number is required";
+    }
+    if (!formData.primary_role) {
+      stepErrors.primary_role = "Please select a role";
+    }
+
+    return stepErrors;
+  };
+
+  const validateStep2 = () => {
+    const stepErrors = {};
+
+    if (!formData.project_title.trim()) {
+      stepErrors.project_title = "Project title is required";
+    }
+    if (!formData.project_type) {
+      stepErrors.project_type = "Please select a project type";
+    }
+    if (!formData.budget_label) {
+      stepErrors.budget_label = "Please select a budget range";
+    }
+
+    return stepErrors;
+  };
+
+  const validateStep3Events = () => {
+    const stepErrors = {};
+
+    formData.events.forEach((event, idx) => {
+      if (!event.event_type) {
+        stepErrors[`event_${idx}_type`] = `Event ${
+          idx + 1
+        }: Please select an event type`;
+      }
+      if (!event.date) {
+        stepErrors[`event_${idx}_date`] = `Event ${idx + 1}: Date is required`;
+      }
+
+      // Check at least one location has a name
+      const hasValidLocation = event.locations.some((loc) => loc.name.trim());
+      if (!hasValidLocation) {
+        stepErrors[`event_${idx}_location`] = `Event ${
+          idx + 1
+        }: At least one venue name is required`;
+      }
+
+      // Check at least one service is selected
+      const hasValidService = event.services.some((svc) => svc.service_key);
+      if (!hasValidService) {
+        stepErrors[`event_${idx}_service`] = `Event ${
+          idx + 1
+        }: At least one service is required`;
+      }
+    });
+
+    return stepErrors;
+  };
+
+  const validateStep3or4Deliverables = () => {
+    const stepErrors = {};
+
+    if (!formData.delivery_method) {
+      stepErrors.delivery_method = "Please select a delivery method";
+    }
+
+    return stepErrors;
+  };
+
+  const validateCurrentStep = () => {
+    let stepErrors = {};
+
+    if (currentStep === 1) {
+      stepErrors = validateStep1();
+    } else if (currentStep === 2) {
+      stepErrors = validateStep2();
+    } else if (
+      currentStep === 3 &&
+      selectedProjectType?.supports_multiple_events
+    ) {
+      stepErrors = validateStep3Events();
+    } else if (
+      (currentStep === 3 && !selectedProjectType?.supports_multiple_events) ||
+      (currentStep === 4 && selectedProjectType?.supports_multiple_events)
+    ) {
+      stepErrors = validateStep3or4Deliverables();
+    }
+
+    return stepErrors;
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    // Clear error for this field when user types
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleBudgetChange = (range) => {
@@ -195,6 +308,14 @@ function InquiryForm() {
       budget_max: range.max,
       budget_label: range.label,
     }));
+    // Clear budget error
+    if (errors.budget_label) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.budget_label;
+        return newErrors;
+      });
+    }
   };
 
   const handleVideoOutputToggle = (key) => {
@@ -238,6 +359,16 @@ function InquiryForm() {
         e.id === eventId ? { ...e, [field]: value } : e
       ),
     }));
+    // Clear related errors
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      Object.keys(newErrors).forEach((key) => {
+        if (key.includes("event_")) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
   };
 
   // Location management within event
@@ -292,6 +423,16 @@ function InquiryForm() {
           : e
       ),
     }));
+    // Clear location errors
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      Object.keys(newErrors).forEach((key) => {
+        if (key.includes("_location")) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
   };
 
   // Service management within event
@@ -340,13 +481,39 @@ function InquiryForm() {
           : e
       ),
     }));
+    // Clear service errors
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      Object.keys(newErrors).forEach((key) => {
+        if (key.includes("_service")) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
   };
 
   const nextStep = () => {
+    const stepErrors = validateCurrentStep();
+
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      setShowErrors(true);
+      // Scroll to top of form to show errors
+      document
+        .querySelector(".form-card")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    setErrors({});
+    setShowErrors(false);
     if (currentStep < totalSteps) setCurrentStep((prev) => prev + 1);
   };
 
   const prevStep = () => {
+    setErrors({});
+    setShowErrors(false);
     if (currentStep > 1) setCurrentStep((prev) => prev - 1);
   };
 
@@ -525,6 +692,30 @@ function InquiryForm() {
 
       {/* Form Card */}
       <form onSubmit={handleSubmit} className="form-card">
+        {/* Error Messages */}
+        {showErrors && Object.keys(errors).length > 0 && (
+          <div className="error-banner">
+            <div className="error-banner-header">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Please complete all required fields</span>
+            </div>
+            <ul className="error-list">
+              {Object.values(errors).map((error, idx) => (
+                <li key={idx}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Step 1: Contact Details */}
         {currentStep === 1 && (
           <div className="form-step">
@@ -538,8 +729,14 @@ function InquiryForm() {
             <div className="section-block">
               <h3 className="section-title">Primary Contact</h3>
               <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="primary_name">Full Name</label>
+                <div
+                  className={`form-group ${
+                    errors.primary_name ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_name">
+                    Full Name <span className="required">*</span>
+                  </label>
                   <input
                     type="text"
                     id="primary_name"
@@ -547,18 +744,25 @@ function InquiryForm() {
                     value={formData.primary_name}
                     onChange={handleInputChange}
                     placeholder="Enter full name"
-                    required
                   />
+                  {errors.primary_name && (
+                    <span className="field-error">{errors.primary_name}</span>
+                  )}
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="primary_role">Role</label>
+                <div
+                  className={`form-group ${
+                    errors.primary_role ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_role">
+                    Role <span className="required">*</span>
+                  </label>
                   <select
                     id="primary_role"
                     name="primary_role"
                     value={formData.primary_role}
                     onChange={handleInputChange}
-                    required
                   >
                     <option value="">Select role</option>
                     {schemaData.contact_roles.map((role) => (
@@ -567,10 +771,19 @@ function InquiryForm() {
                       </option>
                     ))}
                   </select>
+                  {errors.primary_role && (
+                    <span className="field-error">{errors.primary_role}</span>
+                  )}
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="primary_email">Email Address</label>
+                <div
+                  className={`form-group ${
+                    errors.primary_email ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_email">
+                    Email Address <span className="required">*</span>
+                  </label>
                   <input
                     type="email"
                     id="primary_email"
@@ -578,12 +791,20 @@ function InquiryForm() {
                     value={formData.primary_email}
                     onChange={handleInputChange}
                     placeholder="email@example.com"
-                    required
                   />
+                  {errors.primary_email && (
+                    <span className="field-error">{errors.primary_email}</span>
+                  )}
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="primary_phone">Phone Number</label>
+                <div
+                  className={`form-group ${
+                    errors.primary_phone ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_phone">
+                    Phone Number <span className="required">*</span>
+                  </label>
                   <input
                     type="tel"
                     id="primary_phone"
@@ -591,8 +812,10 @@ function InquiryForm() {
                     value={formData.primary_phone}
                     onChange={handleInputChange}
                     placeholder="+91 98765 43210"
-                    required
                   />
+                  {errors.primary_phone && (
+                    <span className="field-error">{errors.primary_phone}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1328,10 +1551,10 @@ function InquiryForm() {
 
       {/* Footer */}
       <footer className="inquiry-footer">
-        <p>
+        {/* <p>
           Questions? Reach out at{" "}
           <a href="mailto:hello@haytham.com">hello@haytham.com</a>
-        </p>
+        </p> */}
       </footer>
     </div>
   );
