@@ -139,6 +139,23 @@ const schemaData = {
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+const getQuantityLabel = (service) => {
+  if (!service) return "Quantity";
+  switch (service.pricing_type) {
+    case "HOURLY":
+      return "Hours";
+    case "DAILY":
+      return "Days";
+    case "PER_PHOTO": // Assuming this might be added later
+      return "Number of Photos";
+    case "PER_EVENT":
+      return "Quantity"; // Or "Events"
+    case "FIXED":
+    default:
+      return "Quantity";
+  }
+};
+
 const createEmptyEvent = () => ({
   id: generateId(),
   event_type: "",
@@ -196,6 +213,7 @@ function InquiryForm() {
               category: s.category_name || "Other",
               id: s.id, // Keep ID for submission
               base_price: s.base_price,
+              pricing_type: s.pricing_type,
               description: s.description,
               deliverables: s.deliverables,
             }));
@@ -1369,23 +1387,37 @@ function InquiryForm() {
                               ))}
                             </select>
                           </div>
-                          <div className="form-group">
-                            <label>Quantity</label>
-                            <input
-                              type="number"
-                              value={service.quantity}
-                              onChange={(e) =>
-                                updateService(
-                                  event.id,
-                                  service.id,
-                                  "quantity",
-                                  parseInt(e.target.value) || 1
-                                )
-                              }
-                              min="1"
-                              max="10"
-                            />
-                          </div>
+
+                          {service.service_key &&
+                            ["HOURLY", "PER_PHOTO", "PER_EVENT"].includes(
+                              availableServices.find(
+                                (s) => s.key === service.service_key
+                              )?.pricing_type
+                            ) && (
+                              <div className="form-group">
+                                <label>
+                                  {getQuantityLabel(
+                                    availableServices.find(
+                                      (s) => s.key === service.service_key
+                                    )
+                                  )}
+                                </label>
+                                <input
+                                  type="number"
+                                  value={service.quantity}
+                                  onChange={(e) =>
+                                    updateService(
+                                      event.id,
+                                      service.id,
+                                      "quantity",
+                                      parseInt(e.target.value) || 1
+                                    )
+                                  }
+                                  min="1"
+                                  max="1000"
+                                />
+                              </div>
+                            )}
                           <div className="form-group">
                             <label>Notes</label>
                             <input
