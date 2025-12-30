@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "./InquiryForm.css";
 
 // Schema data
@@ -52,6 +52,31 @@ const schemaData = {
     { key: "CORPORATE_SHOOT", label: "Corporate Shoot" },
   ],
   services: [
+    {
+      key: "CANDID_PHOTO",
+      label: "Candid Photography",
+      category: "Photography",
+    },
+    {
+      key: "TRADITIONAL_PHOTO",
+      label: "Traditional Photography",
+      category: "Photography",
+    },
+    {
+      key: "CINEMATIC_VIDEO",
+      label: "Cinematography",
+      category: "Videography",
+    },
+    {
+      key: "TRADITIONAL_VIDEO",
+      label: "Traditional Videography",
+      category: "Videography",
+    },
+    { key: "DRONE", label: "Drone Coverage", category: "Add-ons" },
+    { key: "LIVE_STREAM", label: "Live Streaming", category: "Add-ons" },
+  ],
+  // Fallback/Default services if not fetched
+  default_services: [
     {
       key: "CANDID_PHOTO",
       label: "Candid Photography",
@@ -133,15 +158,63 @@ const createEmptyEvent = () => ({
 });
 
 function InquiryForm() {
-  const { userId } = useParams();
+  const navigate = useNavigate();
+  const { userId, token } = useParams();
   const [searchParams] = useSearchParams();
   const tenantId = searchParams.get("userId") || userId || "";
+
+  // Dynamic Data State
+  const [availableServices, setAvailableServices] = useState(
+    schemaData.default_services
+  );
+  const [isLoading, setIsLoading] = useState(!!token); // Only load if token is present
+  const [fetchError, setFetchError] = useState(null);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
   const [showErrors, setShowErrors] = useState(false);
+
+  // Fetch Services if Token is present
+  useEffect(() => {
+    if (userId && token) {
+      const fetchServices = async () => {
+        setIsLoading(true);
+        try {
+          // NOTE: Hardcoded API URL for demo - should be in config/env
+          const response = await fetch(
+            `http://localhost:3001/public/booking/${userId}/${token}/services`
+          );
+          const result = await response.json();
+          console.log("Raw Response from Backend:", result); // DEBUG LOG
+          if (result.success) {
+            // Map backend services to frontend schema format
+            const mappedServices = result.data.map((s) => ({
+              key: s.service_key,
+              label: s.service_name,
+              category: s.category_name || "Other",
+              id: s.id, // Keep ID for submission
+              base_price: s.base_price,
+              description: s.description,
+              deliverables: s.deliverables,
+            }));
+            console.log("Mapped Services for Frontend:", mappedServices); // DEBUG LOG
+            setAvailableServices(mappedServices);
+          } else {
+            setFetchError(result.error || "Failed to load services");
+          }
+        } catch (error) {
+          console.error("Error fetching services:", error);
+          setFetchError("Network error. Please try again.");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchServices();
+    }
+  }, [userId, token]);
 
   const [formData, setFormData] = useState({
     // Primary Contact
@@ -582,7 +655,7 @@ function InquiryForm() {
             service: {
               key: svc.service_key,
               label:
-                schemaData.services.find((s) => s.key === svc.service_key)
+                availableServices.find((s) => s.key === svc.service_key)
                   ?.label || "",
             },
             quantity: svc.quantity,
@@ -606,13 +679,44 @@ function InquiryForm() {
     setIsSubmitting(true);
 
     const submitData = buildSubmitData();
-    console.log("Submitting inquiry:", JSON.stringify(submitData, null, 2));
+    // Use token endpoint if token exists, else fall back to legacy/demo
+    const url =
+      userId && token
+        ? `http://localhost:3001/public/booking/${userId}/${token}/submit`
+        : `http://localhost:3001/public/${tenantId}/booking`; // Legacy/Demo
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submitData),
+      });
 
-    setIsSubmitting(false);
-    setSubmitted(true);
+      const result = await response.json();
+
+      if (response.ok || result.success) {
+        setSubmitted(true);
+      } else {
+        // Handle expiration or specific errors
+        if (response.status === 410 || result.error === "Link already used") {
+          setFetchError("This booking link has already been used.");
+          setSubmitted(true); // Or show specific error state
+        } else {
+          alert(result.error || "Submission failed");
+        }
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      // Simulate success for demo if api fails and no token (fallback)
+      if (!token) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        setSubmitted(true);
+      } else {
+        alert("Network error during submission");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStepLabel = (step) => {
@@ -642,6 +746,59 @@ function InquiryForm() {
           <p>
             Thank you for reaching out. We'll review your details and get back
             to you within 24 hours with a custom proposal.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div
+        className="inquiry-container"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
+        <div
+          className="loading-spinner"
+          style={{
+            border: "4px solid #f3f3f3",
+            borderTop: "4px solid #3498db",
+            borderRadius: "50%",
+            width: "40px",
+            height: "40px",
+            animation: "spin 1s linear infinite",
+          }}
+        ></div>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="inquiry-container">
+        <div
+          className="error-card"
+          style={{
+            textAlign: "center",
+            padding: "40px",
+            background: "white",
+            borderRadius: "16px",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <h2 style={{ color: "#ef4444", marginBottom: "16px" }}>
+            Link Expired or Invalid
+          </h2>
+          <p style={{ color: "#64748b", marginBottom: "24px" }}>{fetchError}</p>
+          <p style={{ fontSize: "0.9rem", color: "#94a3b8" }}>
+            This booking link may have already been used or is past its
+            expiration date. Please request a new link.
           </p>
         </div>
       </div>
@@ -1205,7 +1362,7 @@ function InquiryForm() {
                               }
                             >
                               <option value="">Select service</option>
-                              {schemaData.services.map((svc) => (
+                              {availableServices.map((svc) => (
                                 <option key={svc.key} value={svc.key}>
                                   {svc.label}
                                 </option>
@@ -1256,6 +1413,10 @@ function InquiryForm() {
             <button type="button" className="btn-add-event" onClick={addEvent}>
               + Add Another Event
             </button>
+            <div style={{ marginTop: 20, fontSize: 12, color: "#888" }}>
+              Debug: Found {availableServices.length} services. First:{" "}
+              {availableServices[0]?.label || "None"}
+            </div>
           </div>
         )}
 

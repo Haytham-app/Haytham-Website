@@ -37,6 +37,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/inquiryform" element={<InquiryForm />} />
         <Route path="/inquiryform/:userId" element={<InquiryForm />} />
+        {/* New Booking Route with Token */}
+        <Route path="/book/:userId/:token" element={<InquiryForm />} />
       </Routes>
     </Router>
   );
