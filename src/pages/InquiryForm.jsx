@@ -136,6 +136,8 @@ const schemaData = {
     },
   ],
 };
+const apiUrl = "https://haytham-backend.onrender.com";
+// const apiUrl = "http://localhost:3001";
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -209,10 +211,12 @@ function InquiryForm() {
       setIsLoading(true);
       try {
         // Fetch Services by photographer ID
+        const tokenParam = token ? `&token=${token}` : "";
         const servicesResponse = await fetch(
-          `https://haytham-backend.onrender.com/api/v1/inquiries/services?user_id=${photographerId}`
+          `${apiUrl}/api/v1/inquiries/services?user_id=${photographerId}${tokenParam}`
         );
         const servicesResult = await servicesResponse.json();
+        console.log("Services Fetched (Website):", servicesResult);
 
         if (servicesResult.success && servicesResult.data) {
           const mappedServices = servicesResult.data.map((s) => ({
@@ -230,12 +234,18 @@ function InquiryForm() {
 
         // Fetch Packages by photographer ID
         const packagesResponse = await fetch(
-          `https://haytham-backend.onrender.com/api/v1/inquiries/packages?user_id=${photographerId}`
+          `${apiUrl}/api/v1/inquiries/packages?user_id=${photographerId}${tokenParam}`
         );
         const packagesResult = await packagesResponse.json();
+        console.log("Packages Fetched (Website):", packagesResult);
         console.log("Packages fetched:", packagesResult); // Debug log
-        if (packagesResult.success || packagesResult.data) {
-          setAvailablePackages(packagesResult.data || packagesResult);
+        if (packagesResult.success) {
+          setAvailablePackages(packagesResult.data);
+        } else if (
+          packagesResult.error === "Link already used" ||
+          packagesResponse.status === 410
+        ) {
+          setFetchError("This booking link has already been used.");
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -350,12 +360,14 @@ function InquiryForm() {
         }: At least one venue name is required`;
       }
 
-      // Check at least one service is selected
-      const hasValidService = event.services.some((svc) => svc.service_key);
-      if (!hasValidService) {
-        stepErrors[`event_${idx}_service`] = `Event ${
-          idx + 1
-        }: At least one service is required`;
+      // Check at least one service is selected ONLY IF no package is selected
+      if (!formData.selected_package_id) {
+        const hasValidService = event.services.some((svc) => svc.service_key);
+        if (!hasValidService) {
+          stepErrors[`event_${idx}_service`] = `Event ${
+            idx + 1
+          }: At least one service is required`;
+        }
       }
     });
 
@@ -720,7 +732,7 @@ function InquiryForm() {
 
     const submitData = buildSubmitData();
     // Use token endpoint if token exists, else fall back to legacy/demo
-    const url = `https://haytham-backend.onrender.com/public/booking/${userId}/${token}/submit`;
+    const url = `${apiUrl}/public/booking/${userId}/${token}/submit`;
 
     try {
       const response = await fetch(url, {
@@ -874,6 +886,60 @@ function InquiryForm() {
           @keyframes fadeInOut {
             0%, 100% { opacity: 0.5; }
             50% { opacity: 1; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="inquiry-container">
+        <div className="error-card">
+          <div className="error-icon-ring">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <h2>Link invalid</h2>
+          <p>{fetchError}</p>
+        </div>
+        <style>{`
+          .error-card {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            max-width: 400px;
+            width: 90%;
+            margin: auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+          }
+          .error-icon-ring {
+            width: 64px;
+            height: 64px;
+            background: #fee2e2;
+            color: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+          }
+          .error-icon-ring svg {
+            width: 32px;
+            height: 32px;
           }
         `}</style>
       </div>
@@ -1495,7 +1561,11 @@ function InquiryForm() {
                   {/* Services */}
                   <div className="nested-section">
                     <div className="nested-header">
-                      <h4>Services Required</h4>
+                      <h4>
+                        {formData.selected_package_id
+                          ? "Add-on Services (Optional)"
+                          : "Services Required"}
+                      </h4>
                       <button
                         type="button"
                         className="btn-add-small"
