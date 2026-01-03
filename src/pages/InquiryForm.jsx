@@ -184,7 +184,8 @@ function InquiryForm() {
   const [availableServices, setAvailableServices] = useState(
     schemaData.default_services
   );
-  const [isLoading, setIsLoading] = useState(!!token); // Only load if token is present
+  const [availablePackages, setAvailablePackages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true); // Always load initially
   const [fetchError, setFetchError] = useState(null);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -193,46 +194,59 @@ function InquiryForm() {
   const [errors, setErrors] = useState({});
   const [showErrors, setShowErrors] = useState(false);
 
-  // Fetch Services if Token is present
+  // Fetch Services and Packages by photographer ID (no token validation required)
   useEffect(() => {
-    if (userId && token) {
-      const fetchServices = async () => {
-        setIsLoading(true);
-        try {
-          // NOTE: Hardcoded API URL for demo - should be in config/env
-          const response = await fetch(
-            `http://localhost:3001/public/booking/${userId}/${token}/services`
-          );
-          const result = await response.json();
-          console.log("Raw Response from Backend:", result); // DEBUG LOG
-          if (result.success) {
-            // Map backend services to frontend schema format
-            const mappedServices = result.data.map((s) => ({
-              key: s.service_key,
-              label: s.service_name,
-              category: s.category_name || "Other",
-              id: s.id, // Keep ID for submission
-              base_price: s.base_price,
-              pricing_type: s.pricing_type,
-              description: s.description,
-              deliverables: s.deliverables,
-            }));
-            console.log("Mapped Services for Frontend:", mappedServices); // DEBUG LOG
-            setAvailableServices(mappedServices);
-          } else {
-            setFetchError(result.error || "Failed to load services");
-          }
-        } catch (error) {
-          console.error("Error fetching services:", error);
-          setFetchError("Network error. Please try again.");
-        } finally {
-          setIsLoading(false);
-        }
-      };
+    const fetchData = async () => {
+      // Use userId from URL params or tenantId
+      const photographerId = userId || tenantId;
 
-      fetchServices();
-    }
-  }, [userId, token]);
+      if (!photographerId) {
+        console.log("No photographer ID found in URL");
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Fetch Services by photographer ID
+        const servicesResponse = await fetch(
+          `https://haytham-backend.onrender.com/api/v1/inquiries/services?user_id=${photographerId}`
+        );
+        const servicesResult = await servicesResponse.json();
+
+        if (servicesResult.success && servicesResult.data) {
+          const mappedServices = servicesResult.data.map((s) => ({
+            key: s.service_key,
+            label: s.service_name,
+            category: s.category_name || "Other",
+            id: s.id,
+            base_price: s.base_price,
+            pricing_type: s.pricing_type,
+            description: s.description,
+            deliverables: s.deliverables,
+          }));
+          setAvailableServices(mappedServices);
+        }
+
+        // Fetch Packages by photographer ID
+        const packagesResponse = await fetch(
+          `https://haytham-backend.onrender.com/api/v1/inquiries/packages?user_id=${photographerId}`
+        );
+        const packagesResult = await packagesResponse.json();
+        console.log("Packages fetched:", packagesResult); // Debug log
+        if (packagesResult.success || packagesResult.data) {
+          setAvailablePackages(packagesResult.data || packagesResult);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        // Don't show error - use default services
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [userId, tenantId]);
 
   const [formData, setFormData] = useState({
     // Primary Contact
@@ -266,12 +280,16 @@ function InquiryForm() {
 
     // Additional
     additional_notes: "",
+
+    // Package Selection
+    selected_package_id: null, // null = Custom, UUID = prebuilt package
   });
 
   const selectedProjectType = schemaData.project_types.find(
     (p) => p.key === formData.project_type
   );
-  const totalSteps = selectedProjectType?.supports_multiple_events ? 5 : 4;
+  // Add +1 for Package Selection step
+  const totalSteps = selectedProjectType?.supports_multiple_events ? 6 : 5;
 
   // Validation functions for each step
   const validateStep1 = () => {
@@ -361,14 +379,17 @@ function InquiryForm() {
       stepErrors = validateStep1();
     } else if (currentStep === 2) {
       stepErrors = validateStep2();
+    } else if (currentStep === 3) {
+      // Step 3 is Package Selection - no validation needed (always has a default)
+      stepErrors = {};
     } else if (
-      currentStep === 3 &&
+      currentStep === 4 &&
       selectedProjectType?.supports_multiple_events
     ) {
       stepErrors = validateStep3Events();
     } else if (
-      (currentStep === 3 && !selectedProjectType?.supports_multiple_events) ||
-      (currentStep === 4 && selectedProjectType?.supports_multiple_events)
+      (currentStep === 4 && !selectedProjectType?.supports_multiple_events) ||
+      (currentStep === 5 && selectedProjectType?.supports_multiple_events)
     ) {
       stepErrors = validateStep3or4Deliverables();
     }
@@ -689,6 +710,7 @@ function InquiryForm() {
         video_outputs: formData.video_outputs,
       },
       additional_notes: formData.additional_notes,
+      selected_package_id: formData.selected_package_id,
     };
   };
 
@@ -739,11 +761,18 @@ function InquiryForm() {
 
   const getStepLabel = (step) => {
     if (selectedProjectType?.supports_multiple_events) {
-      return ["Contact", "Project", "Events", "Deliverables", "Review"][
-        step - 1
-      ];
+      return [
+        "Contact",
+        "Project",
+        "Package",
+        "Events",
+        "Deliverables",
+        "Review",
+      ][step - 1];
     }
-    return ["Contact", "Project", "Deliverables", "Review"][step - 1];
+    return ["Contact", "Project", "Package", "Deliverables", "Review"][
+      step - 1
+    ];
   };
 
   if (submitted) {
@@ -772,56 +801,89 @@ function InquiryForm() {
 
   if (isLoading) {
     return (
-      <div
-        className="inquiry-container"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-        }}
-      >
-        <div
-          className="loading-spinner"
-          style={{
-            border: "4px solid #f3f3f3",
-            borderTop: "4px solid #3498db",
-            borderRadius: "50%",
-            width: "40px",
-            height: "40px",
-            animation: "spin 1s linear infinite",
-          }}
-        ></div>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <div className="loading-screen">
+        <div className="loading-content">
+          <div className="loading-logo">
+            <span className="loading-logo-text">HayTham</span>
+          </div>
+          <div className="loading-spinner-container">
+            <div className="loading-spinner-ring"></div>
+            <div className="loading-spinner-ring loading-spinner-ring-2"></div>
+          </div>
+          <p className="loading-text">Preparing your experience...</p>
+        </div>
+        <style>{`
+          .loading-screen {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          }
+          .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+          }
+          .loading-logo {
+            animation: pulse 2s ease-in-out infinite;
+          }
+          .loading-logo-text {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #171717;
+            letter-spacing: -0.03em;
+          }
+          .loading-spinner-container {
+            position: relative;
+            width: 48px;
+            height: 48px;
+          }
+          .loading-spinner-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid #e5e5e5;
+            border-top-color: #171717;
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+          }
+          .loading-spinner-ring-2 {
+            width: 32px;
+            height: 32px;
+            top: 8px;
+            left: 8px;
+            border-color: #d4d4d4;
+            border-top-color: #525252;
+            animation-duration: 0.8s;
+            animation-direction: reverse;
+          }
+          .loading-text {
+            font-size: 0.875rem;
+            color: #737373;
+            font-weight: 500;
+            animation: fadeInOut 2s ease-in-out infinite;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+          }
+          @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+          }
+        `}</style>
       </div>
     );
   }
 
-  if (fetchError) {
-    return (
-      <div className="inquiry-container">
-        <div
-          className="error-card"
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            background: "white",
-            borderRadius: "16px",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          <h2 style={{ color: "#ef4444", marginBottom: "16px" }}>
-            Link Expired or Invalid
-          </h2>
-          <p style={{ color: "#64748b", marginBottom: "24px" }}>{fetchError}</p>
-          <p style={{ fontSize: "0.9rem", color: "#94a3b8" }}>
-            This booking link may have already been used or is past its
-            expiration date. Please request a new link.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Note: fetchError display removed - form always shows without token validation
 
   return (
     <div className="inquiry-container">
@@ -1148,8 +1210,107 @@ function InquiryForm() {
           </div>
         )}
 
-        {/* Step 3: Events (only for multi-event projects) */}
-        {currentStep === 3 && selectedProjectType?.supports_multiple_events && (
+        {/* Step 3: Package Selection */}
+        {currentStep === 3 && (
+          <div className="form-step">
+            <div className="step-header">
+              <h2 className="step-title">Select a Package</h2>
+              <p className="step-description">
+                Choose a pre-built package or customize your own
+              </p>
+            </div>
+
+            <div className="package-grid">
+              {/* Custom Option */}
+              <div
+                className={`package-card ${
+                  formData.selected_package_id === null ? "selected" : ""
+                }`}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    selected_package_id: null,
+                  }))
+                }
+              >
+                <div className="package-card-header">
+                  <h3 className="package-name">Custom (Build Your Own)</h3>
+                  {formData.selected_package_id === null && (
+                    <div className="package-check">✓</div>
+                  )}
+                </div>
+                <p className="package-desc">
+                  Select specific services for each event manually in the next
+                  steps.
+                </p>
+              </div>
+
+              {/* Available Packages */}
+              {availablePackages.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className={`package-card ${
+                    formData.selected_package_id === pkg.id ? "selected" : ""
+                  }`}
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      selected_package_id: pkg.id,
+                    }))
+                  }
+                >
+                  <div className="package-card-header">
+                    <h3 className="package-name">{pkg.name}</h3>
+                    {formData.selected_package_id === pkg.id && (
+                      <div className="package-check">✓</div>
+                    )}
+                  </div>
+                  <div className="package-price">
+                    ₹
+                    {Number(pkg.total_price || pkg.price || 0).toLocaleString()}
+                  </div>
+                  <p className="package-desc">
+                    {pkg.description || "Premium photography package"}
+                  </p>
+                  {pkg.services && pkg.services.length > 0 && (
+                    <div className="package-services">
+                      <span className="package-services-label">Services:</span>
+                      <ul>
+                        {pkg.services.slice(0, 4).map((svc, idx) => (
+                          <li key={idx}>{svc.service_name || svc.name}</li>
+                        ))}
+                        {pkg.services.length > 4 && (
+                          <li>+{pkg.services.length - 4} more</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  {pkg.deliverables && pkg.deliverables.length > 0 && (
+                    <div className="package-deliverables">
+                      <span className="package-services-label">
+                        Deliverables:
+                      </span>
+                      <ul>
+                        {pkg.deliverables.slice(0, 4).map((del, idx) => (
+                          <li key={idx}>
+                            {del.name}{" "}
+                            {del.quantity > 1 ? `(×${del.quantity})` : ""}
+                          </li>
+                        ))}
+                        {pkg.deliverables.length > 4 && (
+                          <li>+{pkg.deliverables.length - 4} more</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Events (only for multi-event projects) - was Step 3 */}
+        {currentStep === 4 && selectedProjectType?.supports_multiple_events && (
           <div className="form-step">
             <div className="step-header">
               <h2 className="step-title">Event Details</h2>
@@ -1454,9 +1615,9 @@ function InquiryForm() {
 
         {/* Step: Deliverables */}
         {((selectedProjectType?.supports_multiple_events &&
-          currentStep === 4) ||
+          currentStep === 5) ||
           (!selectedProjectType?.supports_multiple_events &&
-            currentStep === 3)) && (
+            currentStep === 4)) && (
           <div className="form-step">
             <div className="step-header">
               <h2 className="step-title">Deliverables</h2>

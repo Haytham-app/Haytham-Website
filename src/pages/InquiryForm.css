@@ -982,4 +982,136 @@
     align-items: flex-start;
     gap: 0.25rem;
   }
+
+  .package-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Package Selection */
+.package-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.package-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--white);
+}
+
+.package-card:hover {
+  border-color: var(--gray-400);
+  box-shadow: var(--shadow-md);
+}
+
+.package-card.selected {
+  border-color: var(--gray-900);
+  background: var(--gray-50);
+}
+
+.package-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.package-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0;
+}
+
+.package-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gray-900);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.package-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent-600);
+  margin-bottom: 0.5rem;
+}
+
+.package-desc {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.package-services {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.package-services-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.package-services ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.package-services li {
+  font-size: 0.8125rem;
+  color: var(--gray-600);
+}
+
+.package-services li::before {
+  content: "✓ ";
+  color: var(--success);
+}
+
+/* Package Deliverables */
+.package-deliverables {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.package-deliverables ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.package-deliverables li {
+  font-size: 0.8125rem;
+  color: var(--gray-600);
+}
+
+.package-deliverables li::before {
+  content: "📦 ";
 }
