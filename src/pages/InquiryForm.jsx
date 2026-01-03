@@ -720,10 +720,7 @@ function InquiryForm() {
 
     const submitData = buildSubmitData();
     // Use token endpoint if token exists, else fall back to legacy/demo
-    const url =
-      userId && token
-        ? `http://localhost:3001/public/booking/${userId}/${token}/submit`
-        : `http://localhost:3001/public/${tenantId}/booking`; // Legacy/Demo
+    const url = `https://haytham-backend.onrender.com/public/booking/${userId}/${token}/submit`;
 
     try {
       const response = await fetch(url, {
