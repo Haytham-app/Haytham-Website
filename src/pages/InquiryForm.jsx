@@ -136,8 +136,8 @@ const schemaData = {
     },
   ],
 };
-const apiUrl = "https://haytham-backend.onrender.com";
-// const apiUrl = "http://localhost:3001";
+// const apiUrl = "https://haytham-backend.onrender.com";
+const apiUrl = "http://localhost:3001";
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -213,7 +213,7 @@ function InquiryForm() {
         // Fetch Services by photographer ID
         const tokenParam = token ? `&token=${token}` : "";
         const servicesResponse = await fetch(
-          `${apiUrl}/api/v1/inquiries/services?user_id=${photographerId}${tokenParam}`
+          `${apiUrl}/api/v1/inquiries/services?user_id=${photographerId}${tokenParam}&active_only=true`
         );
         const servicesResult = await servicesResponse.json();
         console.log("Services Fetched (Website):", servicesResult);
@@ -234,7 +234,7 @@ function InquiryForm() {
 
         // Fetch Packages by photographer ID
         const packagesResponse = await fetch(
-          `${apiUrl}/api/v1/inquiries/packages?user_id=${photographerId}${tokenParam}`
+          `${apiUrl}/api/v1/inquiries/packages?user_id=${photographerId}${tokenParam}&active_only=true`
         );
         const packagesResult = await packagesResponse.json();
         console.log("Packages Fetched (Website):", packagesResult);
@@ -649,6 +649,16 @@ function InquiryForm() {
       created_at: now,
       status: "NEW",
       stage: "INQUIRY",
+      // Map to flat fields expected by inquiryController common parameters
+      client_name: formData.primary_name,
+      client_email: formData.primary_email,
+      client_phone: formData.primary_phone,
+      event_type: formData.project_type,
+      budget_range: formData.budget_label,
+      notes: formData.additional_notes,
+      total_days: formData.events?.length || 1,
+
+      // Preserve complex object for backup/context in 'client' key (handled by my backend patch)
       client: {
         primary_contact: {
           name: formData.primary_name,
