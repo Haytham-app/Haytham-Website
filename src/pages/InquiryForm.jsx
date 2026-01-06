@@ -136,8 +136,8 @@ const schemaData = {
     },
   ],
 };
-const apiUrl = "https://haytham-backend.onrender.com";
-//const apiUrl = "http://localhost:3001";
+// const apiUrl = "https://haytham-backend.onrender.com";
+const apiUrl = "http://localhost:3001";
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -293,6 +293,9 @@ function InquiryForm() {
 
     // Package Selection
     selected_package_id: null, // null = Custom, UUID = prebuilt package
+
+    // Same Location for All Events
+    sameLocationForAll: false,
   });
 
   const selectedProjectType = schemaData.project_types.find(
@@ -454,8 +457,18 @@ function InquiryForm() {
               duration:
                 schemaData.video_outputs.find((v) => v.key === key)
                   ?.defaultDuration || "",
+              count: 1,
             },
           ],
+    }));
+  };
+
+  const handleVideoOutputCountChange = (key, count) => {
+    setFormData((prev) => ({
+      ...prev,
+      video_outputs: prev.video_outputs.map((v) =>
+        v.key === key ? { ...v, count: Math.max(1, parseInt(count) || 1) } : v
+      ),
     }));
   };
 
@@ -534,9 +547,8 @@ function InquiryForm() {
   };
 
   const updateLocation = (eventId, locationId, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      events: prev.events.map((e) =>
+    setFormData((prev) => {
+      const updatedEvents = prev.events.map((e) =>
         e.id === eventId
           ? {
               ...e,
@@ -545,8 +557,42 @@ function InquiryForm() {
               ),
             }
           : e
-      ),
-    }));
+      );
+
+      // If sameLocationForAll is enabled and this is the first event's first location
+      if (prev.sameLocationForAll) {
+        const firstEvent = updatedEvents[0];
+        if (
+          eventId === firstEvent.id &&
+          firstEvent.locations[0]?.id === locationId
+        ) {
+          // Copy first event's first location to all other events
+          const firstLocation = firstEvent.locations[0];
+          return {
+            ...prev,
+            events: updatedEvents.map((e, idx) =>
+              idx === 0
+                ? e
+                : {
+                    ...e,
+                    locations: e.locations.map((l, lIdx) =>
+                      lIdx === 0
+                        ? {
+                            ...l,
+                            name: firstLocation.name,
+                            address: firstLocation.address,
+                            location_type: firstLocation.location_type,
+                          }
+                        : l
+                    ),
+                  }
+            ),
+          };
+        }
+      }
+
+      return { ...prev, events: updatedEvents };
+    });
     // Clear location errors
     setErrors((prev) => {
       const newErrors = { ...prev };
@@ -556,6 +602,39 @@ function InquiryForm() {
         }
       });
       return newErrors;
+    });
+  };
+
+  const handleSameLocationToggle = (checked) => {
+    setFormData((prev) => {
+      if (checked && prev.events.length > 1) {
+        // Copy first event's first location to all other events
+        const firstLocation = prev.events[0]?.locations[0];
+        if (firstLocation) {
+          return {
+            ...prev,
+            sameLocationForAll: true,
+            events: prev.events.map((e, idx) =>
+              idx === 0
+                ? e
+                : {
+                    ...e,
+                    locations: e.locations.map((l, lIdx) =>
+                      lIdx === 0
+                        ? {
+                            ...l,
+                            name: firstLocation.name,
+                            address: firstLocation.address,
+                            location_type: firstLocation.location_type,
+                          }
+                        : l
+                    ),
+                  }
+            ),
+          };
+        }
+      }
+      return { ...prev, sameLocationForAll: checked };
     });
   };
 
@@ -1392,6 +1471,54 @@ function InquiryForm() {
               </p>
             </div>
 
+            {/* Same Location for All Events Toggle */}
+            {formData.events.length > 1 && (
+              <div
+                className="same-location-toggle"
+                style={{
+                  marginBottom: "1rem",
+                  padding: "0.75rem 1rem",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    color: "#374151",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.sameLocationForAll}
+                    onChange={(e) => handleSameLocationToggle(e.target.checked)}
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      accentColor: "#1f2937",
+                    }}
+                  />
+                  <span>Same location for all events</span>
+                </label>
+                {formData.sameLocationForAll && (
+                  <p
+                    style={{
+                      margin: "0.5rem 0 0 2rem",
+                      fontSize: "0.75rem",
+                      color: "#6b7280",
+                    }}
+                  >
+                    All events will use the same venue as Event 1
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="events-list">
               {formData.events.map((event, eventIndex) => (
                 <div key={event.id} className="event-block">
@@ -1466,13 +1593,13 @@ function InquiryForm() {
                   <div className="nested-section">
                     <div className="nested-header">
                       <h4>Locations</h4>
-                      <button
+                      {/* <button
                         type="button"
                         className="btn-add-small"
                         onClick={() => addLocation(event.id)}
                       >
                         + Add Location
-                      </button>
+                      </button> */}
                     </div>
 
                     {event.locations.map((location, locIndex) => (
@@ -1703,6 +1830,54 @@ function InquiryForm() {
               </p>
             </div>
 
+            {/* Selected Services Summary */}
+            {formData.events.some((e) =>
+              e.services.some((s) => s.service_key)
+            ) && (
+              <div className="section-block">
+                <h3 className="section-title">Selected Services</h3>
+                <div className="selected-services-summary">
+                  {(() => {
+                    // Aggregate all selected services across events
+                    const serviceMap = {};
+                    formData.events.forEach((event) => {
+                      event.services.forEach((svc) => {
+                        if (svc.service_key) {
+                          const svcInfo = availableServices.find(
+                            (s) => s.key === svc.service_key
+                          );
+                          if (svcInfo) {
+                            if (!serviceMap[svc.service_key]) {
+                              serviceMap[svc.service_key] = {
+                                label: svcInfo.label,
+                                quantity: svc.quantity || 1,
+                                events: [event.event_type || "Event"],
+                              };
+                            } else {
+                              serviceMap[svc.service_key].quantity +=
+                                svc.quantity || 1;
+                              serviceMap[svc.service_key].events.push(
+                                event.event_type || "Event"
+                              );
+                            }
+                          }
+                        }
+                      });
+                    });
+                    return Object.entries(serviceMap).map(([key, info]) => (
+                      <div key={key} className="service-summary-item">
+                        <span className="service-check">✓</span>
+                        <span className="service-name">{info.label}</span>
+                        {info.quantity > 1 && (
+                          <span className="service-qty">×{info.quantity}</span>
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
             <div className="section-block">
               <h3 className="section-title">Delivery Method</h3>
               <div className="delivery-grid">
@@ -1762,30 +1937,68 @@ function InquiryForm() {
             <div className="section-block">
               <h3 className="section-title">Video Outputs</h3>
               <div className="video-outputs-grid">
-                {schemaData.video_outputs.map((output) => (
-                  <label
-                    key={output.key}
-                    className={`video-output-card ${
-                      formData.video_outputs.some((v) => v.key === output.key)
-                        ? "selected"
-                        : ""
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.video_outputs.some(
-                        (v) => v.key === output.key
+                {schemaData.video_outputs.map((output) => {
+                  const selectedOutput = formData.video_outputs.find(
+                    (v) => v.key === output.key
+                  );
+                  const isSelected = !!selectedOutput;
+                  return (
+                    <div
+                      key={output.key}
+                      className={`video-output-card ${
+                        isSelected ? "selected" : ""
+                      }`}
+                    >
+                      <label className="video-output-checkbox-area">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleVideoOutputToggle(output.key)}
+                        />
+                        <div className="video-output-content">
+                          <span className="video-output-label">
+                            {output.label}
+                          </span>
+                          <span className="video-output-duration">
+                            {output.defaultDuration}
+                          </span>
+                        </div>
+                      </label>
+                      {isSelected && (
+                        <div className="video-output-count">
+                          <button
+                            type="button"
+                            className="count-btn"
+                            onClick={() =>
+                              handleVideoOutputCountChange(
+                                output.key,
+                                (selectedOutput.count || 1) - 1
+                              )
+                            }
+                            disabled={(selectedOutput.count || 1) <= 1}
+                          >
+                            −
+                          </button>
+                          <span className="count-value">
+                            {selectedOutput.count || 1}
+                          </span>
+                          <button
+                            type="button"
+                            className="count-btn"
+                            onClick={() =>
+                              handleVideoOutputCountChange(
+                                output.key,
+                                (selectedOutput.count || 1) + 1
+                              )
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
                       )}
-                      onChange={() => handleVideoOutputToggle(output.key)}
-                    />
-                    <div className="video-output-content">
-                      <span className="video-output-label">{output.label}</span>
-                      <span className="video-output-duration">
-                        {output.defaultDuration}
-                      </span>
                     </div>
-                  </label>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

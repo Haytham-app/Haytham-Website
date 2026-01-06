@@ -656,6 +656,99 @@
   color: var(--gray-400);
 }
 
+.video-output-checkbox-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.video-output-checkbox-area input {
+  display: none;
+}
+
+.video-output-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.video-output-count .count-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  transition: all var(--transition);
+}
+
+.video-output-count .count-btn:hover:not(:disabled) {
+  background: var(--gray-100);
+  border-color: var(--gray-400);
+}
+
+.video-output-count .count-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.video-output-count .count-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Selected Services Summary */
+.selected-services-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.service-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+.service-check {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.service-name {
+  color: #065f46;
+  font-weight: 500;
+}
+
+.service-qty {
+  color: #059669;
+  font-weight: 600;
+  background: #d1fae5;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
 /* Review Section */
 .review-sections {
   display: flex;
