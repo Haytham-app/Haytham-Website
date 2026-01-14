@@ -169,6 +169,7 @@ const createEmptyEvent = () => ({
       id: generateId(),
       name: "",
       address: "",
+      city: "",
       location_type: "",
       activity: "",
     },
@@ -263,6 +264,10 @@ function InquiryForm() {
     primary_name: "",
     primary_email: "",
     primary_phone: "",
+    primary_street: "",
+    primary_city: "",
+    primary_state: "",
+    primary_pincode: "",
     primary_role: "",
 
     // Secondary Contact
@@ -303,21 +308,32 @@ function InquiryForm() {
   );
   // Add +1 for Package Selection step
   const totalSteps = selectedProjectType?.supports_multiple_events ? 6 : 5;
-
   // Validation functions for each step
   const validateStep1 = () => {
     const stepErrors = {};
 
-    if (!formData.primary_name.trim()) {
+    if (!formData.primary_name?.trim()) {
       stepErrors.primary_name = "Full name is required";
     }
-    if (!formData.primary_email.trim()) {
+    if (!formData.primary_email?.trim()) {
       stepErrors.primary_email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.primary_email)) {
       stepErrors.primary_email = "Please enter a valid email";
     }
-    if (!formData.primary_phone.trim()) {
+    if (!formData.primary_phone?.trim()) {
       stepErrors.primary_phone = "Phone number is required";
+    }
+    if (!formData.primary_street?.trim()) {
+      stepErrors.primary_street = "Street address is required";
+    }
+    if (!formData.primary_city?.trim()) {
+      stepErrors.primary_city = "City is required";
+    }
+    if (!formData.primary_state?.trim()) {
+      stepErrors.primary_state = "State is required";
+    }
+    if (!formData.primary_pincode?.trim()) {
+      stepErrors.primary_pincode = "Pincode is required";
     }
     if (!formData.primary_role) {
       stepErrors.primary_role = "Please select a role";
@@ -361,6 +377,14 @@ function InquiryForm() {
         stepErrors[`event_${idx}_location`] = `Event ${
           idx + 1
         }: At least one venue name is required`;
+      }
+
+      // Check at least one location has a city
+      const hasValidCity = event.locations.some((loc) => loc.city?.trim());
+      if (!hasValidCity) {
+        stepErrors[`event_${idx}_city`] = `Event ${
+          idx + 1
+        }: City is required for at least one location`;
       }
 
       // Check at least one service is selected ONLY IF no package is selected
@@ -522,6 +546,7 @@ function InquiryForm() {
                   id: generateId(),
                   name: "",
                   address: "",
+                  city: "",
                   location_type: "",
                   activity: "",
                 },
@@ -581,6 +606,7 @@ function InquiryForm() {
                             ...l,
                             name: firstLocation.name,
                             address: firstLocation.address,
+                            city: firstLocation.city,
                             location_type: firstLocation.location_type,
                           }
                         : l
@@ -625,6 +651,7 @@ function InquiryForm() {
                             ...l,
                             name: firstLocation.name,
                             address: firstLocation.address,
+                            city: firstLocation.city,
                             location_type: firstLocation.location_type,
                           }
                         : l
@@ -743,6 +770,10 @@ function InquiryForm() {
           name: formData.primary_name,
           email: formData.primary_email,
           phone: formData.primary_phone,
+          street: formData.primary_street,
+          city: formData.primary_city,
+          state: formData.primary_state,
+          pincode: formData.primary_pincode,
           role: formData.primary_role.toUpperCase(),
         },
         secondary_contact: formData.secondary_name
@@ -786,6 +817,7 @@ function InquiryForm() {
           order: locIdx + 1,
           name: loc.name,
           address: loc.address,
+          city: loc.city,
           location_type: loc.location_type,
           activity: loc.activity || null,
         })),
@@ -1206,6 +1238,92 @@ function InquiryForm() {
                     <span className="field-error">{errors.primary_phone}</span>
                   )}
                 </div>
+                <div
+                  className={`form-group full-width ${
+                    errors.primary_street ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_street">
+                    Street Address <span className="required">*</span>
+                  </label>
+                  <textarea
+                    id="primary_street"
+                    name="primary_street"
+                    value={formData.primary_street}
+                    onChange={handleInputChange}
+                    placeholder="House/Flat No., Street, Area"
+                    rows={2}
+                  />
+                  {errors.primary_street && (
+                    <span className="field-error">{errors.primary_street}</span>
+                  )}
+                </div>
+
+                <div
+                  className={`form-group ${
+                    errors.primary_city ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_city">
+                    City <span className="required">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="primary_city"
+                    name="primary_city"
+                    value={formData.primary_city}
+                    onChange={handleInputChange}
+                    placeholder="City"
+                  />
+                  {errors.primary_city && (
+                    <span className="field-error">{errors.primary_city}</span>
+                  )}
+                </div>
+
+                <div
+                  className={`form-group ${
+                    errors.primary_state ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_state">
+                    State <span className="required">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="primary_state"
+                    name="primary_state"
+                    value={formData.primary_state}
+                    onChange={handleInputChange}
+                    placeholder="State"
+                  />
+                  {errors.primary_state && (
+                    <span className="field-error">{errors.primary_state}</span>
+                  )}
+                </div>
+
+                <div
+                  className={`form-group ${
+                    errors.primary_pincode ? "has-error" : ""
+                  }`}
+                >
+                  <label htmlFor="primary_pincode">
+                    Pincode <span className="required">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="primary_pincode"
+                    name="primary_pincode"
+                    value={formData.primary_pincode}
+                    onChange={handleInputChange}
+                    placeholder="PIN Code"
+                    maxLength={6}
+                  />
+                  {errors.primary_pincode && (
+                    <span className="field-error">
+                      {errors.primary_pincode}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1562,6 +1680,7 @@ function InquiryForm() {
                         onChange={(e) =>
                           updateEvent(event.id, "date", e.target.value)
                         }
+                        min={new Date().toISOString().split("T")[0]}
                         required
                       />
                     </div>
@@ -1688,6 +1807,24 @@ function InquiryForm() {
                                 )
                               }
                               placeholder="Full address"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>
+                              City <span className="required">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={location.city}
+                              onChange={(e) =>
+                                updateLocation(
+                                  event.id,
+                                  location.id,
+                                  "city",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="e.g., Mumbai"
                             />
                           </div>
                         </div>

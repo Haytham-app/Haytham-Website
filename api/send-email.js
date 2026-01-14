@@ -42,8 +42,8 @@ export default async function handler(req, res) {
       port: 587,
       secure: false,
       auth: {
-        user: "altamashsheikh077@gmail.com",
-        pass: "bfnhndxnercznigi",
+        user: "haythamapp.com@gmail.com",
+        pass: "beikhfnvcjgszoxp",
       },
     });
 
