@@ -136,7 +136,7 @@ const schemaData = {
     },
   ],
 };
-const apiUrl = "https://haytham-backend.onrender.com";
+const apiUrl = "https://api.haythamapp.com";
 // const apiUrl = "http://localhost:3001";
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
