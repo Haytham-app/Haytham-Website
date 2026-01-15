@@ -2,6 +2,31 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "./InquiryForm.css";
 
+
+// Helper: Convert "14:30" (24h) -> { hour: "02", minute: "30", period: "PM" }
+const parseTime = (time24) => {
+  if (!time24) return { hour: "12", minute: "00", period: "AM" };
+  const [h, m] = time24.split(":");
+  let hourInt = parseInt(h);
+  const period = hourInt >= 12 ? "PM" : "AM";
+  hourInt = hourInt % 12 || 12; // Convert 0 to 12
+  return {
+    hour: String(hourInt).padStart(2, "0"),
+    minute: m || "00",
+    period
+  };
+};
+
+// Helper: Convert ("02", "30", "PM") -> "14:30" for backend
+const stringifyTime = (hour, minute, period) => {
+  let h = parseInt(hour);
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${minute}`;
+};
+
+// ... const schemaData = { ... (existing code follows)
+
 // Schema data
 const schemaData = {
   project_types: [
@@ -12,28 +37,28 @@ const schemaData = {
       supports_multiple_events: true,
     },
     {
-      key: "ELOPEMENT",
-      label: "Elopement",
+      key: "PRE-WEDDING SHOOT",
+      label: "Pre-Wedding Shoot",
       category: "EVENT",
-      supports_multiple_events: false,
+      supports_multiple_events: true,
     },
     {
       key: "ENGAGEMENT",
       label: "Engagement Session",
       category: "EVENT",
-      supports_multiple_events: false,
+      supports_multiple_events: true,
     },
     {
       key: "FAMILY",
       label: "Family Portrait",
       category: "SESSION",
-      supports_multiple_events: false,
+      supports_multiple_events: true,
     },
     {
       key: "NEWBORN",
       label: "Newborn Session",
       category: "SESSION",
-      supports_multiple_events: false,
+      supports_multiple_events: true,
     },
     {
       key: "BRANDING",
@@ -128,7 +153,7 @@ const schemaData = {
       label: "Instagram Reel",
       defaultDuration: "1 min",
     },
-    { key: "TEASER", label: "Teaser Video", defaultDuration: "3–5 min" },
+    { key: "CINEMATIC_FILM", label: "Cinematic Film", defaultDuration: "5–7 min" },
     {
       key: "FULL_FILM",
       label: "Full-Length Film",
@@ -136,8 +161,8 @@ const schemaData = {
     },
   ],
 };
-const apiUrl = "https://api.haythamapp.com";
-// const apiUrl = "http://localhost:3001";
+//const apiUrl = "https://api.haythamapp.com";
+const apiUrl = "http://localhost:3001";
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -182,6 +207,7 @@ function InquiryForm() {
   const { userId, token } = useParams();
   const [searchParams] = useSearchParams();
   const tenantId = searchParams.get("userId") || userId || "";
+  const [showSecondary, setShowSecondary] = useState(false);
 
   // Dynamic Data State
   const [availableServices, setAvailableServices] = useState(
@@ -363,9 +389,8 @@ function InquiryForm() {
 
     formData.events.forEach((event, idx) => {
       if (!event.event_type) {
-        stepErrors[`event_${idx}_type`] = `Event ${
-          idx + 1
-        }: Please select an event type`;
+        stepErrors[`event_${idx}_type`] = `Event ${idx + 1
+          }: Please select an event type`;
       }
       if (!event.date) {
         stepErrors[`event_${idx}_date`] = `Event ${idx + 1}: Date is required`;
@@ -374,26 +399,23 @@ function InquiryForm() {
       // Check at least one location has a name
       const hasValidLocation = event.locations.some((loc) => loc.name.trim());
       if (!hasValidLocation) {
-        stepErrors[`event_${idx}_location`] = `Event ${
-          idx + 1
-        }: At least one venue name is required`;
+        stepErrors[`event_${idx}_location`] = `Event ${idx + 1
+          }: At least one venue name is required`;
       }
 
       // Check at least one location has a city
       const hasValidCity = event.locations.some((loc) => loc.city?.trim());
       if (!hasValidCity) {
-        stepErrors[`event_${idx}_city`] = `Event ${
-          idx + 1
-        }: City is required for at least one location`;
+        stepErrors[`event_${idx}_city`] = `Event ${idx + 1
+          }: City is required for at least one location`;
       }
 
       // Check at least one service is selected ONLY IF no package is selected
       if (!formData.selected_package_id) {
         const hasValidService = event.services.some((svc) => svc.service_key);
         if (!hasValidService) {
-          stepErrors[`event_${idx}_service`] = `Event ${
-            idx + 1
-          }: At least one service is required`;
+          stepErrors[`event_${idx}_service`] = `Event ${idx + 1
+            }: At least one service is required`;
         }
       }
     });
@@ -475,15 +497,15 @@ function InquiryForm() {
       video_outputs: prev.video_outputs.some((v) => v.key === key)
         ? prev.video_outputs.filter((v) => v.key !== key)
         : [
-            ...prev.video_outputs,
-            {
-              key,
-              duration:
-                schemaData.video_outputs.find((v) => v.key === key)
-                  ?.defaultDuration || "",
-              count: 1,
-            },
-          ],
+          ...prev.video_outputs,
+          {
+            key,
+            duration:
+              schemaData.video_outputs.find((v) => v.key === key)
+                ?.defaultDuration || "",
+            count: 1,
+          },
+        ],
     }));
   };
 
@@ -539,19 +561,19 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-              ...e,
-              locations: [
-                ...e.locations,
-                {
-                  id: generateId(),
-                  name: "",
-                  address: "",
-                  city: "",
-                  location_type: "",
-                  activity: "",
-                },
-              ],
-            }
+            ...e,
+            locations: [
+              ...e.locations,
+              {
+                id: generateId(),
+                name: "",
+                address: "",
+                city: "",
+                location_type: "",
+                activity: "",
+              },
+            ],
+          }
           : e
       ),
     }));
@@ -563,9 +585,9 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-              ...e,
-              locations: e.locations.filter((l) => l.id !== locationId),
-            }
+            ...e,
+            locations: e.locations.filter((l) => l.id !== locationId),
+          }
           : e
       ),
     }));
@@ -576,11 +598,11 @@ function InquiryForm() {
       const updatedEvents = prev.events.map((e) =>
         e.id === eventId
           ? {
-              ...e,
-              locations: e.locations.map((l) =>
-                l.id === locationId ? { ...l, [field]: value } : l
-              ),
-            }
+            ...e,
+            locations: e.locations.map((l) =>
+              l.id === locationId ? { ...l, [field]: value } : l
+            ),
+          }
           : e
       );
 
@@ -599,19 +621,19 @@ function InquiryForm() {
               idx === 0
                 ? e
                 : {
-                    ...e,
-                    locations: e.locations.map((l, lIdx) =>
-                      lIdx === 0
-                        ? {
-                            ...l,
-                            name: firstLocation.name,
-                            address: firstLocation.address,
-                            city: firstLocation.city,
-                            location_type: firstLocation.location_type,
-                          }
-                        : l
-                    ),
-                  }
+                  ...e,
+                  locations: e.locations.map((l, lIdx) =>
+                    lIdx === 0
+                      ? {
+                        ...l,
+                        name: firstLocation.name,
+                        address: firstLocation.address,
+                        city: firstLocation.city,
+                        location_type: firstLocation.location_type,
+                      }
+                      : l
+                  ),
+                }
             ),
           };
         }
@@ -644,19 +666,18 @@ function InquiryForm() {
               idx === 0
                 ? e
                 : {
-                    ...e,
-                    locations: e.locations.map((l, lIdx) =>
-                      lIdx === 0
-                        ? {
-                            ...l,
-                            name: firstLocation.name,
-                            address: firstLocation.address,
-                            city: firstLocation.city,
-                            location_type: firstLocation.location_type,
-                          }
-                        : l
-                    ),
-                  }
+                  ...e,
+                  locations: e.locations.map((l, lIdx) =>
+                    lIdx === 0
+                      ? {
+                        ...l,
+                        name: firstLocation.name,
+                        address: firstLocation.address,
+                        location_type: firstLocation.location_type,
+                      }
+                      : l
+                  ),
+                }
             ),
           };
         }
@@ -672,12 +693,12 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-              ...e,
-              services: [
-                ...e.services,
-                { id: generateId(), service_key: "", quantity: 1, notes: "" },
-              ],
-            }
+            ...e,
+            services: [
+              ...e.services,
+              { id: generateId(), service_key: "", quantity: 1, notes: "" },
+            ],
+          }
           : e
       ),
     }));
@@ -689,9 +710,9 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-              ...e,
-              services: e.services.filter((s) => s.id !== serviceId),
-            }
+            ...e,
+            services: e.services.filter((s) => s.id !== serviceId),
+          }
           : e
       ),
     }));
@@ -703,11 +724,11 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-              ...e,
-              services: e.services.map((s) =>
-                s.id === serviceId ? { ...s, [field]: value } : s
-              ),
-            }
+            ...e,
+            services: e.services.map((s) =>
+              s.id === serviceId ? { ...s, [field]: value } : s
+            ),
+          }
           : e
       ),
     }));
@@ -776,13 +797,13 @@ function InquiryForm() {
           pincode: formData.primary_pincode,
           role: formData.primary_role.toUpperCase(),
         },
-        secondary_contact: formData.secondary_name
+        secondary_contact: showSecondary && formData.secondary_name
           ? {
-              name: formData.secondary_name,
-              email: formData.secondary_email,
-              phone: formData.secondary_phone,
-              role: formData.secondary_role.toUpperCase(),
-            }
+            name: formData.secondary_name,
+            email: formData.secondary_email,
+            phone: formData.secondary_phone,
+            role: formData.secondary_role.toUpperCase(),
+          }
           : null,
       },
       project: {
@@ -849,6 +870,15 @@ function InquiryForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🛑 GUARD CLAUSE: Prevent auto-submission from "Enter" key or accidental clicks
+    // If we are NOT on the final step, stop immediately.
+    if (currentStep !== totalSteps) {
+      // Optional: You can make "Enter" move to the next step instead
+      // nextStep(); 
+      return;
+    }
+
     setIsSubmitting(true);
 
     const submitData = buildSubmitData();
@@ -870,7 +900,7 @@ function InquiryForm() {
         // Handle expiration or specific errors
         if (response.status === 410 || result.error === "Link already used") {
           setFetchError("This booking link has already been used.");
-          setSubmitted(true); // Or show specific error state
+          setSubmitted(true);
         } else {
           alert(result.error || "Submission failed");
         }
@@ -1100,9 +1130,8 @@ function InquiryForm() {
           {Array.from({ length: totalSteps }, (_, idx) => (
             <div
               key={idx}
-              className={`progress-step ${
-                currentStep > idx + 1 ? "completed" : ""
-              } ${currentStep === idx + 1 ? "active" : ""}`}
+              className={`progress-step ${currentStep > idx + 1 ? "completed" : ""
+                } ${currentStep === idx + 1 ? "active" : ""}`}
             >
               <span className="step-number">{idx + 1}</span>
               <span className="step-label">{getStepLabel(idx + 1)}</span>
@@ -1112,7 +1141,7 @@ function InquiryForm() {
       </div>
 
       {/* Form Card */}
-      <form onSubmit={handleSubmit} className="form-card">
+      <form className="form-card" onSubmit={(e) => e.preventDefault()}>
         {/* Error Messages */}
         {showErrors && Object.keys(errors).length > 0 && (
           <div className="error-banner">
@@ -1151,9 +1180,8 @@ function InquiryForm() {
               <h3 className="section-title">Primary Contact</h3>
               <div className="form-grid">
                 <div
-                  className={`form-group ${
-                    errors.primary_name ? "has-error" : ""
-                  }`}
+                  className={`form-group ${errors.primary_name ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_name">
                     Full Name <span className="required">*</span>
@@ -1172,9 +1200,8 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${
-                    errors.primary_role ? "has-error" : ""
-                  }`}
+                  className={`form-group ${errors.primary_role ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_role">
                     Role <span className="required">*</span>
@@ -1198,9 +1225,8 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${
-                    errors.primary_email ? "has-error" : ""
-                  }`}
+                  className={`form-group ${errors.primary_email ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_email">
                     Email Address <span className="required">*</span>
@@ -1219,9 +1245,8 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${
-                    errors.primary_phone ? "has-error" : ""
-                  }`}
+                  className={`form-group ${errors.primary_phone ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_phone">
                     Phone Number <span className="required">*</span>
@@ -1239,9 +1264,8 @@ function InquiryForm() {
                   )}
                 </div>
                 <div
-                  className={`form-group full-width ${
-                    errors.primary_street ? "has-error" : ""
-                  }`}
+                  className={`form-group full-width ${errors.primary_street ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_street">
                     Street Address <span className="required">*</span>
@@ -1260,9 +1284,8 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${
-                    errors.primary_city ? "has-error" : ""
-                  }`}
+                  className={`form-group ${errors.primary_city ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_city">
                     City <span className="required">*</span>
@@ -1281,9 +1304,8 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${
-                    errors.primary_state ? "has-error" : ""
-                  }`}
+                  className={`form-group ${errors.primary_state ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_state">
                     State <span className="required">*</span>
@@ -1302,9 +1324,8 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${
-                    errors.primary_pincode ? "has-error" : ""
-                  }`}
+                  className={`form-group ${errors.primary_pincode ? "has-error" : ""
+                    }`}
                 >
                   <label htmlFor="primary_pincode">
                     Pincode <span className="required">*</span>
@@ -1326,65 +1347,78 @@ function InquiryForm() {
                 </div>
               </div>
             </div>
-
             <div className="section-block">
-              <h3 className="section-title">
-                Secondary Contact <span className="optional-tag">Optional</span>
-              </h3>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="secondary_name">Full Name</label>
-                  <input
-                    type="text"
-                    id="secondary_name"
-                    name="secondary_name"
-                    value={formData.secondary_name}
-                    onChange={handleInputChange}
-                    placeholder="Enter full name"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="secondary_role">Role</label>
-                  <select
-                    id="secondary_role"
-                    name="secondary_role"
-                    value={formData.secondary_role}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">Select role</option>
-                    {schemaData.contact_roles.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="secondary_email">Email Address</label>
-                  <input
-                    type="email"
-                    id="secondary_email"
-                    name="secondary_email"
-                    value={formData.secondary_email}
-                    onChange={handleInputChange}
-                    placeholder="email@example.com"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="secondary_phone">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="secondary_phone"
-                    name="secondary_phone"
-                    value={formData.secondary_phone}
-                    onChange={handleInputChange}
-                    placeholder="+91 98765 43210"
-                  />
-                </div>
+              {/* 1. NEW: Replaced the <h3> with this Checkbox Toggle */}
+              <div className="section-header-toggle" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <input
+                  type="checkbox"
+                  id="toggleSecondary"
+                  checked={showSecondary}
+                  onChange={(e) => setShowSecondary(e.target.checked)}
+                  style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                />
+                <label htmlFor="toggleSecondary" style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: '1.17em', margin: 0 }}>
+                  Secondary Contact <span className="optional-tag" style={{ fontSize: '0.8em', fontWeight: 'normal', color: '#666', marginLeft: '8px', background: '#f0f0f0', padding: '2px 8px', borderRadius: '4px' }}>Optional</span>
+                </label>
               </div>
+
+              {/* 2. NEW: Wrapped the form-grid in this condition */}
+              {showSecondary && (
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label htmlFor="secondary_name">Full Name</label>
+                    <input
+                      type="text"
+                      id="secondary_name"
+                      name="secondary_name"
+                      value={formData.secondary_name}
+                      onChange={handleInputChange}
+                      placeholder="Enter full name"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="secondary_role">Role</label>
+                    <select
+                      id="secondary_role"
+                      name="secondary_role"
+                      value={formData.secondary_role}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Select role</option>
+                      {schemaData.contact_roles.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="secondary_email">Email Address</label>
+                    <input
+                      type="email"
+                      id="secondary_email"
+                      name="secondary_email"
+                      value={formData.secondary_email}
+                      onChange={handleInputChange}
+                      placeholder="email@example.com"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="secondary_phone">Phone Number</label>
+                    <input
+                      type="tel"
+                      id="secondary_phone"
+                      name="secondary_phone"
+                      value={formData.secondary_phone}
+                      onChange={handleInputChange}
+                      placeholder="+91 98765 43210"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1421,9 +1455,8 @@ function InquiryForm() {
                 {schemaData.project_types.map((project) => (
                   <div
                     key={project.key}
-                    className={`project-type-card ${
-                      formData.project_type === project.key ? "selected" : ""
-                    }`}
+                    className={`project-type-card ${formData.project_type === project.key ? "selected" : ""
+                      }`}
                     onClick={() =>
                       setFormData((prev) => ({
                         ...prev,
@@ -1444,9 +1477,8 @@ function InquiryForm() {
                 {schemaData.budget_ranges.map((range) => (
                   <label
                     key={range.label}
-                    className={`budget-card ${
-                      formData.budget_label === range.label ? "selected" : ""
-                    }`}
+                    className={`budget-card ${formData.budget_label === range.label ? "selected" : ""
+                      }`}
                   >
                     <input
                       type="radio"
@@ -1493,9 +1525,8 @@ function InquiryForm() {
             <div className="package-grid">
               {/* Custom Option */}
               <div
-                className={`package-card ${
-                  formData.selected_package_id === null ? "selected" : ""
-                }`}
+                className={`package-card ${formData.selected_package_id === null ? "selected" : ""
+                  }`}
                 onClick={() =>
                   setFormData((prev) => ({
                     ...prev,
@@ -1519,9 +1550,8 @@ function InquiryForm() {
               {availablePackages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className={`package-card ${
-                    formData.selected_package_id === pkg.id ? "selected" : ""
-                  }`}
+                  className={`package-card ${formData.selected_package_id === pkg.id ? "selected" : ""
+                    }`}
                   onClick={() =>
                     setFormData((prev) => ({
                       ...prev,
@@ -1685,26 +1715,76 @@ function InquiryForm() {
                       />
                     </div>
 
+                    {/* --- NEW START TIME (AM/PM) --- */}
                     <div className="form-group">
                       <label>Start Time</label>
-                      <input
-                        type="time"
-                        value={event.time_start}
-                        onChange={(e) =>
-                          updateEvent(event.id, "time_start", e.target.value)
-                        }
-                      />
+                      {(() => {
+                        const { hour, minute, period } = parseTime(event.time_start);
+                        return (
+                          <div className="time-picker-group">
+                            <select
+                              value={hour}
+                              onChange={(e) => updateEvent(event.id, "time_start", stringifyTime(e.target.value, minute, period))}
+                            >
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                <option key={h} value={String(h).padStart(2, "0")}>{h}</option>
+                              ))}
+                            </select>
+                            <span className="time-separator">:</span>
+                            <select
+                              value={minute}
+                              onChange={(e) => updateEvent(event.id, "time_start", stringifyTime(hour, e.target.value, period))}
+                            >
+                              {["00", "15", "30", "45"].map((m) => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={period}
+                              onChange={(e) => updateEvent(event.id, "time_start", stringifyTime(hour, minute, e.target.value))}
+                            >
+                              <option value="AM">AM</option>
+                              <option value="PM">PM</option>
+                            </select>
+                          </div>
+                        );
+                      })()}
                     </div>
 
+                    {/* --- NEW END TIME (AM/PM) --- */}
                     <div className="form-group">
                       <label>End Time</label>
-                      <input
-                        type="time"
-                        value={event.time_end}
-                        onChange={(e) =>
-                          updateEvent(event.id, "time_end", e.target.value)
-                        }
-                      />
+                      {(() => {
+                        const { hour, minute, period } = parseTime(event.time_end);
+                        return (
+                          <div className="time-picker-group">
+                            <select
+                              value={hour}
+                              onChange={(e) => updateEvent(event.id, "time_end", stringifyTime(e.target.value, minute, period))}
+                            >
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                                <option key={h} value={String(h).padStart(2, "0")}>{h}</option>
+                              ))}
+                            </select>
+                            <span className="time-separator">:</span>
+                            <select
+                              value={minute}
+                              onChange={(e) => updateEvent(event.id, "time_end", stringifyTime(hour, e.target.value, period))}
+                            >
+                              {["00", "15", "30", "45"].map((m) => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={period}
+                              onChange={(e) => updateEvent(event.id, "time_end", stringifyTime(hour, minute, e.target.value))}
+                            >
+                              <option value="AM">AM</option>
+                              <option value="PM">PM</option>
+                            </select>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -1959,202 +2039,200 @@ function InquiryForm() {
           currentStep === 5) ||
           (!selectedProjectType?.supports_multiple_events &&
             currentStep === 4)) && (
-          <div className="form-step">
-            <div className="step-header">
-              <h2 className="step-title">Deliverables</h2>
-              <p className="step-description">
-                How would you like to receive your final content?
-              </p>
-            </div>
+            <div className="form-step">
+              <div className="step-header">
+                <h2 className="step-title">Deliverables</h2>
+                <p className="step-description">
+                  How would you like to receive your final content?
+                </p>
+              </div>
 
-            {/* Selected Services Summary */}
-            {formData.events.some((e) =>
-              e.services.some((s) => s.service_key)
-            ) && (
-              <div className="section-block">
-                <h3 className="section-title">Selected Services</h3>
-                <div className="selected-services-summary">
-                  {(() => {
-                    // Aggregate all selected services across events
-                    const serviceMap = {};
-                    formData.events.forEach((event) => {
-                      event.services.forEach((svc) => {
-                        if (svc.service_key) {
-                          const svcInfo = availableServices.find(
-                            (s) => s.key === svc.service_key
-                          );
-                          if (svcInfo) {
-                            if (!serviceMap[svc.service_key]) {
-                              serviceMap[svc.service_key] = {
-                                label: svcInfo.label,
-                                quantity: svc.quantity || 1,
-                                events: [event.event_type || "Event"],
-                              };
-                            } else {
-                              serviceMap[svc.service_key].quantity +=
-                                svc.quantity || 1;
-                              serviceMap[svc.service_key].events.push(
-                                event.event_type || "Event"
+              {/* Selected Services Summary */}
+              {formData.events.some((e) =>
+                e.services.some((s) => s.service_key)
+              ) && (
+                  <div className="section-block">
+                    <h3 className="section-title">Selected Services</h3>
+                    <div className="selected-services-summary">
+                      {(() => {
+                        // Aggregate all selected services across events
+                        const serviceMap = {};
+                        formData.events.forEach((event) => {
+                          event.services.forEach((svc) => {
+                            if (svc.service_key) {
+                              const svcInfo = availableServices.find(
+                                (s) => s.key === svc.service_key
                               );
+                              if (svcInfo) {
+                                if (!serviceMap[svc.service_key]) {
+                                  serviceMap[svc.service_key] = {
+                                    label: svcInfo.label,
+                                    quantity: svc.quantity || 1,
+                                    events: [event.event_type || "Event"],
+                                  };
+                                } else {
+                                  serviceMap[svc.service_key].quantity +=
+                                    svc.quantity || 1;
+                                  serviceMap[svc.service_key].events.push(
+                                    event.event_type || "Event"
+                                  );
+                                }
+                              }
                             }
-                          }
-                        }
-                      });
-                    });
-                    return Object.entries(serviceMap).map(([key, info]) => (
-                      <div key={key} className="service-summary-item">
-                        <span className="service-check">✓</span>
-                        <span className="service-name">{info.label}</span>
-                        {info.quantity > 1 && (
-                          <span className="service-qty">×{info.quantity}</span>
-                        )}
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-            )}
-
-            <div className="section-block">
-              <h3 className="section-title">Delivery Method</h3>
-              <div className="delivery-grid">
-                {schemaData.delivery_methods.map((method) => (
-                  <label
-                    key={method.key}
-                    className={`delivery-card ${
-                      formData.delivery_method === method.key ? "selected" : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="delivery_method"
-                      value={method.key}
-                      checked={formData.delivery_method === method.key}
-                      onChange={handleInputChange}
-                    />
-                    <span className="delivery-label">{method.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="section-block">
-              <h3 className="section-title">Photo Book</h3>
-              <div className="photobook-options">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    name="photobook_required"
-                    checked={formData.photobook_required}
-                    onChange={handleInputChange}
-                  />
-                  <span>I would like a printed photo book</span>
-                </label>
-
-                {formData.photobook_required && (
-                  <div
-                    className="form-group"
-                    style={{ maxWidth: "200px", marginTop: "1rem" }}
-                  >
-                    <label htmlFor="photobook_copies">Number of Copies</label>
-                    <input
-                      type="number"
-                      id="photobook_copies"
-                      name="photobook_copies"
-                      value={formData.photobook_copies}
-                      onChange={handleInputChange}
-                      min="1"
-                      max="10"
-                    />
+                          });
+                        });
+                        return Object.entries(serviceMap).map(([key, info]) => (
+                          <div key={key} className="service-summary-item">
+                            <span className="service-check">✓</span>
+                            <span className="service-name">{info.label}</span>
+                            {info.quantity > 1 && (
+                              <span className="service-qty">×{info.quantity}</span>
+                            )}
+                          </div>
+                        ));
+                      })()}
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
 
-            <div className="section-block">
-              <h3 className="section-title">Video Outputs</h3>
-              <div className="video-outputs-grid">
-                {schemaData.video_outputs.map((output) => {
-                  const selectedOutput = formData.video_outputs.find(
-                    (v) => v.key === output.key
-                  );
-                  const isSelected = !!selectedOutput;
-                  return (
-                    <div
-                      key={output.key}
-                      className={`video-output-card ${
-                        isSelected ? "selected" : ""
-                      }`}
+              <div className="section-block">
+                <h3 className="section-title">Delivery Method</h3>
+                <div className="delivery-grid">
+                  {schemaData.delivery_methods.map((method) => (
+                    <label
+                      key={method.key}
+                      className={`delivery-card ${formData.delivery_method === method.key ? "selected" : ""
+                        }`}
                     >
-                      <label className="video-output-checkbox-area">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleVideoOutputToggle(output.key)}
-                        />
-                        <div className="video-output-content">
-                          <span className="video-output-label">
-                            {output.label}
-                          </span>
-                          <span className="video-output-duration">
-                            {output.defaultDuration}
-                          </span>
-                        </div>
-                      </label>
-                      {isSelected && (
-                        <div className="video-output-count">
-                          <button
-                            type="button"
-                            className="count-btn"
-                            onClick={() =>
-                              handleVideoOutputCountChange(
-                                output.key,
-                                (selectedOutput.count || 1) - 1
-                              )
-                            }
-                            disabled={(selectedOutput.count || 1) <= 1}
-                          >
-                            −
-                          </button>
-                          <span className="count-value">
-                            {selectedOutput.count || 1}
-                          </span>
-                          <button
-                            type="button"
-                            className="count-btn"
-                            onClick={() =>
-                              handleVideoOutputCountChange(
-                                output.key,
-                                (selectedOutput.count || 1) + 1
-                              )
-                            }
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
+                      <input
+                        type="radio"
+                        name="delivery_method"
+                        value={method.key}
+                        checked={formData.delivery_method === method.key}
+                        onChange={handleInputChange}
+                      />
+                      <span className="delivery-label">{method.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="section-block">
+                <h3 className="section-title">Photo Book</h3>
+                <div className="photobook-options">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      name="photobook_required"
+                      checked={formData.photobook_required}
+                      onChange={handleInputChange}
+                    />
+                    <span>I would like a printed photo book</span>
+                  </label>
+
+                  {formData.photobook_required && (
+                    <div
+                      className="form-group"
+                      style={{ maxWidth: "200px", marginTop: "1rem" }}
+                    >
+                      <label htmlFor="photobook_copies">Number of Copies</label>
+                      <input
+                        type="number"
+                        id="photobook_copies"
+                        name="photobook_copies"
+                        value={formData.photobook_copies}
+                        onChange={handleInputChange}
+                        min="1"
+                        max="10"
+                      />
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+              </div>
+
+              <div className="section-block">
+                <h3 className="section-title">Video Outputs</h3>
+                <div className="video-outputs-grid">
+                  {schemaData.video_outputs.map((output) => {
+                    const selectedOutput = formData.video_outputs.find(
+                      (v) => v.key === output.key
+                    );
+                    const isSelected = !!selectedOutput;
+                    return (
+                      <div
+                        key={output.key}
+                        className={`video-output-card ${isSelected ? "selected" : ""
+                          }`}
+                      >
+                        <label className="video-output-checkbox-area">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleVideoOutputToggle(output.key)}
+                          />
+                          <div className="video-output-content">
+                            <span className="video-output-label">
+                              {output.label}
+                            </span>
+                            <span className="video-output-duration">
+                              {output.defaultDuration}
+                            </span>
+                          </div>
+                        </label>
+                        {isSelected && (
+                          <div className="video-output-count">
+                            <button
+                              type="button"
+                              className="count-btn"
+                              onClick={() =>
+                                handleVideoOutputCountChange(
+                                  output.key,
+                                  (selectedOutput.count || 1) - 1
+                                )
+                              }
+                              disabled={(selectedOutput.count || 1) <= 1}
+                            >
+                              −
+                            </button>
+                            <span className="count-value">
+                              {selectedOutput.count || 1}
+                            </span>
+                            <button
+                              type="button"
+                              className="count-btn"
+                              onClick={() =>
+                                handleVideoOutputCountChange(
+                                  output.key,
+                                  (selectedOutput.count || 1) + 1
+                                )
+                              }
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div
+                className="form-group full-width"
+                style={{ marginTop: "1.5rem" }}
+              >
+                <label htmlFor="additional_notes">Additional Notes</label>
+                <textarea
+                  id="additional_notes"
+                  name="additional_notes"
+                  value={formData.additional_notes}
+                  onChange={handleInputChange}
+                  placeholder="Any specific requirements, style preferences, or questions..."
+                  rows={4}
+                />
               </div>
             </div>
-
-            <div
-              className="form-group full-width"
-              style={{ marginTop: "1.5rem" }}
-            >
-              <label htmlFor="additional_notes">Additional Notes</label>
-              <textarea
-                id="additional_notes"
-                name="additional_notes"
-                value={formData.additional_notes}
-                onChange={handleInputChange}
-                placeholder="Any specific requirements, style preferences, or questions..."
-                rows={4}
-              />
-            </div>
-          </div>
-        )}
+          )}
 
         {/* Step: Review */}
         {currentStep === totalSteps && (
@@ -2179,7 +2257,7 @@ function InquiryForm() {
                       {formData.primary_email} · {formData.primary_phone}
                     </span>
                   </div>
-                  {formData.secondary_name && (
+                  {showSecondary && formData.secondary_name && (
                     <div className="review-item">
                       <span className="review-label">Secondary Contact</span>
                       <span className="review-value">
@@ -2313,7 +2391,8 @@ function InquiryForm() {
             </button>
           ) : (
             <button
-              type="submit"
+              type="button" // <--- CHANGED from 'submit' to 'button'
+              onClick={handleSubmit} // <--- NEW: Explicit click handler
               className="btn btn-primary btn-submit"
               disabled={isSubmitting}
             >
