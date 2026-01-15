@@ -20,11 +20,7 @@ function Home() {
         HayTham Photography
       </h1>
       <p style={{ color: "#666", marginTop: "1rem" }}>
-        Visit{" "}
-        <a href="/inquiryform/demo-user-123" style={{ color: "#FFC107" }}>
-          /inquiryform/:userId
-        </a>{" "}
-        to see the inquiry form
+        Booking forms are accessed via personalized links from the app.
       </p>
     </div>
   );
