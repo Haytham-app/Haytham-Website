@@ -225,6 +225,7 @@ function InquiryForm() {
 
   // Fetch Services and Packages by photographer ID (no token validation required)
   useEffect(() => {
+
     const fetchData = async () => {
       // Use userId from URL params or tenantId
       const photographerId = userId || tenantId;
@@ -284,6 +285,10 @@ function InquiryForm() {
 
     fetchData();
   }, [userId, tenantId]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentStep]);
 
   const [formData, setFormData] = useState({
     // Primary Contact
@@ -1546,7 +1551,6 @@ function InquiryForm() {
                 </p>
               </div>
 
-              {/* Available Packages */}
               {availablePackages.map((pkg) => (
                 <div
                   key={pkg.id}
@@ -1572,34 +1576,34 @@ function InquiryForm() {
                   <p className="package-desc">
                     {pkg.description || "Premium photography package"}
                   </p>
+
+                  {/* --- UPDATED: Services (Show ALL) --- */}
                   {pkg.services && pkg.services.length > 0 && (
                     <div className="package-services">
                       <span className="package-services-label">Services:</span>
                       <ul>
-                        {pkg.services.slice(0, 4).map((svc, idx) => (
+                        {/* Removed .slice(0,4) to show everything */}
+                        {pkg.services.map((svc, idx) => (
                           <li key={idx}>{svc.service_name || svc.name}</li>
                         ))}
-                        {pkg.services.length > 4 && (
-                          <li>+{pkg.services.length - 4} more</li>
-                        )}
                       </ul>
                     </div>
                   )}
+
+                  {/* --- UPDATED: Deliverables (Show ALL) --- */}
                   {pkg.deliverables && pkg.deliverables.length > 0 && (
                     <div className="package-deliverables">
                       <span className="package-services-label">
                         Deliverables:
                       </span>
                       <ul>
-                        {pkg.deliverables.slice(0, 4).map((del, idx) => (
+                        {/* Removed .slice(0,4) to show everything */}
+                        {pkg.deliverables.map((del, idx) => (
                           <li key={idx}>
                             {del.name}{" "}
                             {del.quantity > 1 ? `(×${del.quantity})` : ""}
                           </li>
                         ))}
-                        {pkg.deliverables.length > 4 && (
-                          <li>+{pkg.deliverables.length - 4} more</li>
-                        )}
                       </ul>
                     </div>
                   )}
@@ -2245,6 +2249,7 @@ function InquiryForm() {
             </div>
 
             <div className="review-sections">
+              {/* --- CORRECTED CONTACT INFO BLOCK --- */}
               <div className="review-section">
                 <h3>Contact Information</h3>
                 <div className="review-grid">
@@ -2257,8 +2262,20 @@ function InquiryForm() {
                       {formData.primary_email} · {formData.primary_phone}
                     </span>
                   </div>
+
+                  <div className="review-item">
+                    <span className="review-label">Address</span>
+                    <span className="review-value">
+                      {formData.primary_street || "No street address"}
+                    </span>
+                    <span className="review-subvalue">
+                      {formData.primary_city} {formData.primary_state ? `, ${formData.primary_state}` : ""} {formData.primary_pincode ? `- ${formData.primary_pincode}` : ""}
+                    </span>
+                  </div>
+
+                  {/* Secondary Contact */}
                   {showSecondary && formData.secondary_name && (
-                    <div className="review-item">
+                    <div className="review-item" style={{ marginTop: '10px', borderTop: '1px dashed #eee', paddingTop: '10px' }}>
                       <span className="review-label">Secondary Contact</span>
                       <span className="review-value">
                         {formData.secondary_name} ({formData.secondary_role})
@@ -2271,35 +2288,44 @@ function InquiryForm() {
                 </div>
               </div>
 
+              {/* --- PROJECT & PACKAGE SECTION --- */}
               <div className="review-section">
-                <h3>Project</h3>
+                <h3>Project & Package</h3>
                 <div className="review-grid">
                   <div className="review-item">
-                    <span className="review-label">Title</span>
-                    <span className="review-value">
-                      {formData.project_title}
-                    </span>
+                    <span className="review-label">Project Title</span>
+                    <span className="review-value">{formData.project_title}</span>
                   </div>
+
                   <div className="review-item">
-                    <span className="review-label">Type</span>
+                    <span className="review-label">Project Type</span>
                     <span className="review-value">
-                      {selectedProjectType?.label}
+                      {/* Look up label from schema, handling the new Pre-Wedding key */}
+                      {schemaData.project_types.find(t => t.key === formData.project_type)?.label || formData.project_type}
                     </span>
                   </div>
+
                   <div className="review-item">
-                    <span className="review-label">Budget</span>
-                    <span className="review-value">
-                      {formData.budget_label || "Not specified"}
-                    </span>
+                    <span className="review-label">Selected Package</span>
+                    {formData.selected_package_id ? (
+                      <>
+                        <span className="review-value" style={{ color: '#d97706', fontWeight: 'bold' }}>
+                          {availablePackages.find(p => p.id === formData.selected_package_id)?.name}
+                        </span>
+                        <span className="review-subvalue">
+                          Price: ₹{Number(availablePackages.find(p => p.id === formData.selected_package_id)?.price || 0).toLocaleString()}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="review-value" style={{ fontStyle: 'italic', color: '#666' }}>Custom Package (Build Your Own)</span>
+                    )}
                   </div>
-                  {formData.estimated_guest_count && (
-                    <div className="review-item">
-                      <span className="review-label">Guests</span>
-                      <span className="review-value">
-                        {formData.estimated_guest_count}
-                      </span>
-                    </div>
-                  )}
+
+                  <div className="review-item">
+                    <span className="review-label">Budget & Guests</span>
+                    <span className="review-value">{formData.budget_label}</span>
+                    <span className="review-subvalue">{formData.estimated_guest_count ? `${formData.estimated_guest_count} Guests` : 'Guests not specified'}</span>
+                  </div>
                 </div>
               </div>
 
@@ -2308,64 +2334,130 @@ function InquiryForm() {
                   <h3>Events ({formData.events.length})</h3>
                   <div className="review-events">
                     {formData.events.map((event, idx) => (
-                      <div key={event.id} className="review-event-item">
-                        <span className="review-event-title">
-                          {schemaData.event_types.find(
-                            (e) => e.key === event.event_type
-                          )?.label || "Unnamed Event"}
-                        </span>
-                        <span className="review-event-date">{event.date}</span>
-                        <span className="review-event-details">
-                          {event.locations.filter((l) => l.name).length}{" "}
-                          location(s),{" "}
-                          {event.services.filter((s) => s.service_key).length}{" "}
-                          service(s)
-                        </span>
+                      <div key={event.id} className="review-event-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
+
+                        {/* 1. Header: Type & Date */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                          <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '1.05em' }}>
+                            {schemaData.event_types.find((e) => e.key === event.event_type)?.label || "Event"}
+                          </span>
+
+                          {/* 👇 UPDATED: Formats YYYY-MM-DD to DD-MM-YYYY */}
+                          <span style={{ fontWeight: '600', color: '#64748b' }}>
+                            {event.date ? event.date.split('-').reverse().join('-') : ''}
+                          </span>
+                        </div>
+
+                        {/* 2. Time (Uses your parseTime helper) */}
+                        <div style={{ fontSize: '0.9em', marginBottom: '12px', color: '#475569' }}>
+                          <strong style={{ marginRight: '5px' }}>Time:</strong>
+                          {parseTime(event.time_start).hour}:{parseTime(event.time_start).minute} {parseTime(event.time_start).period}
+                          {' — '}
+                          {parseTime(event.time_end).hour}:{parseTime(event.time_end).minute} {parseTime(event.time_end).period}
+                        </div>
+
+                        {/* 3. Detailed Locations */}
+                        <div className="review-subsection" style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '0.75em', textTransform: 'uppercase', fontWeight: '700', color: '#94a3b8', marginBottom: '6px' }}>Locations</div>
+                          {event.locations.filter(l => l.name).length > 0 ? (
+                            event.locations.filter(l => l.name).map((loc) => (
+                              <div key={loc.id} style={{ marginBottom: '8px', paddingLeft: '10px', borderLeft: '3px solid #cbd5e1' }}>
+                                <div style={{ fontWeight: '600', fontSize: '0.95em' }}>
+                                  {loc.name} <span style={{ fontWeight: '400', color: '#64748b', fontSize: '0.9em' }}>({loc.location_type || 'Venue'})</span>
+                                </div>
+
+                                {/* Activity */}
+                                {loc.activity && <div style={{ fontSize: '0.85em', color: '#d97706', marginBottom: '2px' }}>Activity: {loc.activity}</div>}
+
+                                {/* Address & City */}
+                                <div style={{ fontSize: '0.9em', color: '#64748b' }}>
+                                  {loc.address || ''}
+                                  {loc.address && loc.city ? ', ' : ''}
+                                  {loc.city || ''}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: '0.9em', color: '#999', fontStyle: 'italic' }}>No specific location added</div>
+                          )}
+                        </div>
+
+                        {/* 4. Detailed Services */}
+                        <div className="review-subsection">
+                          <div style={{ fontSize: '0.75em', textTransform: 'uppercase', fontWeight: '700', color: '#94a3b8', marginBottom: '6px' }}>Services</div>
+                          {event.services.filter(s => s.service_key).length > 0 ? (
+                            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.9em' }}>
+                              {event.services.filter(s => s.service_key).map((svc) => {
+                                const serviceLabel = availableServices.find(s => s.key === svc.service_key)?.label;
+                                return (
+                                  <li key={svc.id} style={{ marginBottom: '4px' }}>
+                                    <span style={{ fontWeight: '500' }}>{serviceLabel || svc.service_key}</span>
+                                    {svc.quantity > 1 && <strong> (x{svc.quantity})</strong>}
+                                    {svc.notes && <div style={{ fontSize: '0.85em', color: '#64748b', fontStyle: 'italic' }}>Note: "{svc.notes}"</div>}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : <span style={{ fontSize: '0.9em', color: '#94a3b8', fontStyle: 'italic' }}>No specific services added</span>}
+                        </div>
+
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
+              {/* --- DELIVERABLES & NOTES SECTION --- */}
               <div className="review-section">
                 <h3>Deliverables</h3>
                 <div className="review-grid">
+                  {/* 1. Delivery Method */}
                   <div className="review-item">
                     <span className="review-label">Delivery Method</span>
                     <span className="review-value">
-                      {schemaData.delivery_methods.find(
-                        (d) => d.key === formData.delivery_method
-                      )?.label || "Not specified"}
+                      {schemaData.delivery_methods.find(d => d.key === formData.delivery_method)?.label || "Not specified"}
                     </span>
                   </div>
+
+                  {/* 2. Photo Book */}
                   {formData.photobook_required && (
                     <div className="review-item">
                       <span className="review-label">Photo Book</span>
-                      <span className="review-value">
-                        {formData.photobook_copies} copies
-                      </span>
+                      <span className="review-value">{formData.photobook_copies} Copies</span>
                     </div>
                   )}
-                  {formData.video_outputs.length > 0 && (
+
+                  {/* 3. Video Outputs (Formatted as a List) */}
+                  {formData.video_outputs && formData.video_outputs.length > 0 && (
                     <div className="review-item">
                       <span className="review-label">Video Outputs</span>
-                      <span className="review-value">
-                        {formData.video_outputs
-                          .map(
-                            (v) =>
-                              schemaData.video_outputs.find(
-                                (vo) => vo.key === v.key
-                              )?.label
-                          )
-                          .join(", ")}
-                      </span>
+                      <ul style={{ margin: 0, paddingLeft: '15px', fontSize: '0.95em' }}>
+                        {formData.video_outputs.map((v, index) => (
+                          <li key={index}>
+                            {/* Find label, or use key if label not found */}
+                            {schemaData.video_outputs.find(vo => vo.key === v.key)?.label || v.key}
+                            {v.count > 1 && ` (x${v.count})`}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
+
+                {/* 4. NEW: Additional Notes Display */}
+                {formData.additional_notes && (
+                  <div style={{ marginTop: '20px', background: '#fffbeb', padding: '15px', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                    <span className="review-label" style={{ color: '#b45309', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Additional Notes</span>
+                    <p style={{ margin: '0', fontSize: '0.95em', color: '#78350f', whiteSpace: 'pre-wrap' }}>
+                      {formData.additional_notes}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        )}
+        )
+        }
 
         {/* Navigation */}
         <div className="form-navigation">
@@ -2407,16 +2499,16 @@ function InquiryForm() {
             </button>
           )}
         </div>
-      </form>
+      </form >
 
       {/* Footer */}
-      <footer className="inquiry-footer">
+      < footer className="inquiry-footer" >
         {/* <p>
           Questions? Reach out at{" "}
           <a href="mailto:hello@haytham.com">hello@haytham.com</a>
         </p> */}
-      </footer>
-    </div>
+      </footer >
+    </div >
   );
 }
 
