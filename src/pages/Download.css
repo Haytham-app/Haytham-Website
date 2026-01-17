@@ -1,0 +1,342 @@
+/* Download Page Styles */
+.download-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  padding: 20px;
+}
+
+/* Background Gradient */
+.bg-gradient {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  z-index: -3;
+}
+
+/* Floating circles for depth */
+.bg-circle {
+  position: fixed;
+  border-radius: 50%;
+  z-index: -2;
+  opacity: 0.08;
+}
+
+.bg-circle-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+  top: -200px;
+  right: -100px;
+  animation: float 20s ease-in-out infinite;
+}
+
+.bg-circle-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #2563eb 0%, transparent 70%);
+  bottom: -100px;
+  left: -100px;
+  animation: float 15s ease-in-out infinite reverse;
+}
+
+.bg-circle-3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, #60a5fa 0%, transparent 70%);
+  top: 50%;
+  left: 60%;
+  animation: float 25s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+/* Main Container */
+.download-container {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid #e5e7eb;
+  padding: 48px 40px;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.1),
+    0 0 60px rgba(59, 130, 246, 0.08);
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Logo */
+.logo-wrapper {
+  margin-bottom: 24px;
+  animation: logoAppear 0.8s ease-out 0.2s both;
+}
+
+@keyframes logoAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.haytham-logo {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.haytham-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Title */
+.download-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.download-subtitle {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin: 0 0 20px 0;
+  font-weight: 400;
+}
+
+.download-description {
+  font-size: 1rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 28px 0;
+}
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+  background: #eff6ff;
+  transform: translateY(-2px);
+  border-color: #bfdbfe;
+}
+
+.feature-icon {
+  font-size: 1.2rem;
+}
+
+.feature-text {
+  font-size: 0.85rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+/* Download Button */
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 18px 48px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: 24px;
+}
+
+.download-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(16, 185, 129, 0.5);
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+
+.download-button:active {
+  transform: translateY(-1px);
+}
+
+.download-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-icon svg {
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+/* App Info Badges */
+.app-info {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.info-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+}
+
+/* Footer Note */
+.footer-note {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .download-page {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .download-container {
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+
+  .haytham-logo {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+  }
+
+  .download-title {
+    font-size: 2rem;
+  }
+
+  .download-subtitle {
+    font-size: 1rem;
+  }
+
+  .download-description {
+    font-size: 0.9rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .feature-item {
+    padding: 14px 16px;
+  }
+
+  .download-button {
+    padding: 16px 32px;
+    font-size: 1.05rem;
+  }
+
+  .bg-circle-1 {
+    width: 300px;
+    height: 300px;
+  }
+
+  .bg-circle-2 {
+    width: 200px;
+    height: 200px;
+  }
+
+  .bg-circle-3 {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 380px) {
+  .download-container {
+    padding: 24px 20px;
+  }
+
+  .haytham-logo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .download-title {
+    font-size: 1.75rem;
+  }
+
+  .app-info {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

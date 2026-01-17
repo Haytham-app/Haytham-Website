@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "./InquiryForm.css";
 
-
 // Helper: Convert "14:30" (24h) -> { hour: "02", minute: "30", period: "PM" }
 const parseTime = (time24) => {
   if (!time24) return { hour: "12", minute: "00", period: "AM" };
@@ -13,7 +12,7 @@ const parseTime = (time24) => {
   return {
     hour: String(hourInt).padStart(2, "0"),
     minute: m || "00",
-    period
+    period,
   };
 };
 
@@ -153,7 +152,11 @@ const schemaData = {
       label: "Instagram Reel",
       defaultDuration: "1 min",
     },
-    { key: "CINEMATIC_FILM", label: "Cinematic Film", defaultDuration: "5–7 min" },
+    {
+      key: "CINEMATIC_FILM",
+      label: "Cinematic Film",
+      defaultDuration: "5–7 min",
+    },
     {
       key: "FULL_FILM",
       label: "Full-Length Film",
@@ -161,7 +164,7 @@ const schemaData = {
     },
   ],
 };
-const apiUrl = "https://api.haythamapp.com";
+const apiUrl = import.meta.env.VITE_API_URL || "https://api.haythamapp.com";
 // const apiUrl = "http://localhost:3001";
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -211,7 +214,7 @@ function InquiryForm() {
 
   // Dynamic Data State
   const [availableServices, setAvailableServices] = useState(
-    schemaData.default_services
+    schemaData.default_services,
   );
   const [availablePackages, setAvailablePackages] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // Always load initially
@@ -225,7 +228,6 @@ function InquiryForm() {
 
   // Fetch Services and Packages by photographer ID (no token validation required)
   useEffect(() => {
-
     const fetchData = async () => {
       // Use userId from URL params or tenantId
       const photographerId = userId || tenantId;
@@ -241,7 +243,7 @@ function InquiryForm() {
         // Fetch Services by photographer ID
         const tokenParam = token ? `&token=${token}` : "";
         const servicesResponse = await fetch(
-          `${apiUrl}/api/v1/inquiries/services?user_id=${photographerId}${tokenParam}&active_only=true`
+          `${apiUrl}/api/v1/inquiries/services?user_id=${photographerId}${tokenParam}&active_only=true`,
         );
         const servicesResult = await servicesResponse.json();
         console.log("Services Fetched (Website):", servicesResult);
@@ -262,7 +264,7 @@ function InquiryForm() {
 
         // Fetch Packages by photographer ID
         const packagesResponse = await fetch(
-          `${apiUrl}/api/v1/inquiries/packages?user_id=${photographerId}${tokenParam}&active_only=true`
+          `${apiUrl}/api/v1/inquiries/packages?user_id=${photographerId}${tokenParam}&active_only=true`,
         );
         const packagesResult = await packagesResponse.json();
         console.log("Packages Fetched (Website):", packagesResult);
@@ -335,7 +337,7 @@ function InquiryForm() {
   });
 
   const selectedProjectType = schemaData.project_types.find(
-    (p) => p.key === formData.project_type
+    (p) => p.key === formData.project_type,
   );
   // Add +1 for Package Selection step
   const totalSteps = selectedProjectType?.supports_multiple_events ? 6 : 5;
@@ -394,8 +396,9 @@ function InquiryForm() {
 
     formData.events.forEach((event, idx) => {
       if (!event.event_type) {
-        stepErrors[`event_${idx}_type`] = `Event ${idx + 1
-          }: Please select an event type`;
+        stepErrors[`event_${idx}_type`] = `Event ${
+          idx + 1
+        }: Please select an event type`;
       }
       if (!event.date) {
         stepErrors[`event_${idx}_date`] = `Event ${idx + 1}: Date is required`;
@@ -404,23 +407,26 @@ function InquiryForm() {
       // Check at least one location has a name
       const hasValidLocation = event.locations.some((loc) => loc.name.trim());
       if (!hasValidLocation) {
-        stepErrors[`event_${idx}_location`] = `Event ${idx + 1
-          }: At least one venue name is required`;
+        stepErrors[`event_${idx}_location`] = `Event ${
+          idx + 1
+        }: At least one venue name is required`;
       }
 
       // Check at least one location has a city
       const hasValidCity = event.locations.some((loc) => loc.city?.trim());
       if (!hasValidCity) {
-        stepErrors[`event_${idx}_city`] = `Event ${idx + 1
-          }: City is required for at least one location`;
+        stepErrors[`event_${idx}_city`] = `Event ${
+          idx + 1
+        }: City is required for at least one location`;
       }
 
       // Check at least one service is selected ONLY IF no package is selected
       if (!formData.selected_package_id) {
         const hasValidService = event.services.some((svc) => svc.service_key);
         if (!hasValidService) {
-          stepErrors[`event_${idx}_service`] = `Event ${idx + 1
-            }: At least one service is required`;
+          stepErrors[`event_${idx}_service`] = `Event ${
+            idx + 1
+          }: At least one service is required`;
         }
       }
     });
@@ -502,15 +508,15 @@ function InquiryForm() {
       video_outputs: prev.video_outputs.some((v) => v.key === key)
         ? prev.video_outputs.filter((v) => v.key !== key)
         : [
-          ...prev.video_outputs,
-          {
-            key,
-            duration:
-              schemaData.video_outputs.find((v) => v.key === key)
-                ?.defaultDuration || "",
-            count: 1,
-          },
-        ],
+            ...prev.video_outputs,
+            {
+              key,
+              duration:
+                schemaData.video_outputs.find((v) => v.key === key)
+                  ?.defaultDuration || "",
+              count: 1,
+            },
+          ],
     }));
   };
 
@@ -518,7 +524,7 @@ function InquiryForm() {
     setFormData((prev) => ({
       ...prev,
       video_outputs: prev.video_outputs.map((v) =>
-        v.key === key ? { ...v, count: Math.max(1, parseInt(count) || 1) } : v
+        v.key === key ? { ...v, count: Math.max(1, parseInt(count) || 1) } : v,
       ),
     }));
   };
@@ -544,7 +550,7 @@ function InquiryForm() {
     setFormData((prev) => ({
       ...prev,
       events: prev.events.map((e) =>
-        e.id === eventId ? { ...e, [field]: value } : e
+        e.id === eventId ? { ...e, [field]: value } : e,
       ),
     }));
     // Clear related errors
@@ -566,20 +572,20 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-            ...e,
-            locations: [
-              ...e.locations,
-              {
-                id: generateId(),
-                name: "",
-                address: "",
-                city: "",
-                location_type: "",
-                activity: "",
-              },
-            ],
-          }
-          : e
+              ...e,
+              locations: [
+                ...e.locations,
+                {
+                  id: generateId(),
+                  name: "",
+                  address: "",
+                  city: "",
+                  location_type: "",
+                  activity: "",
+                },
+              ],
+            }
+          : e,
       ),
     }));
   };
@@ -590,10 +596,10 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-            ...e,
-            locations: e.locations.filter((l) => l.id !== locationId),
-          }
-          : e
+              ...e,
+              locations: e.locations.filter((l) => l.id !== locationId),
+            }
+          : e,
       ),
     }));
   };
@@ -603,12 +609,12 @@ function InquiryForm() {
       const updatedEvents = prev.events.map((e) =>
         e.id === eventId
           ? {
-            ...e,
-            locations: e.locations.map((l) =>
-              l.id === locationId ? { ...l, [field]: value } : l
-            ),
-          }
-          : e
+              ...e,
+              locations: e.locations.map((l) =>
+                l.id === locationId ? { ...l, [field]: value } : l,
+              ),
+            }
+          : e,
       );
 
       // If sameLocationForAll is enabled and this is the first event's first location
@@ -626,19 +632,19 @@ function InquiryForm() {
               idx === 0
                 ? e
                 : {
-                  ...e,
-                  locations: e.locations.map((l, lIdx) =>
-                    lIdx === 0
-                      ? {
-                        ...l,
-                        name: firstLocation.name,
-                        address: firstLocation.address,
-                        city: firstLocation.city,
-                        location_type: firstLocation.location_type,
-                      }
-                      : l
-                  ),
-                }
+                    ...e,
+                    locations: e.locations.map((l, lIdx) =>
+                      lIdx === 0
+                        ? {
+                            ...l,
+                            name: firstLocation.name,
+                            address: firstLocation.address,
+                            city: firstLocation.city,
+                            location_type: firstLocation.location_type,
+                          }
+                        : l,
+                    ),
+                  },
             ),
           };
         }
@@ -671,18 +677,18 @@ function InquiryForm() {
               idx === 0
                 ? e
                 : {
-                  ...e,
-                  locations: e.locations.map((l, lIdx) =>
-                    lIdx === 0
-                      ? {
-                        ...l,
-                        name: firstLocation.name,
-                        address: firstLocation.address,
-                        location_type: firstLocation.location_type,
-                      }
-                      : l
-                  ),
-                }
+                    ...e,
+                    locations: e.locations.map((l, lIdx) =>
+                      lIdx === 0
+                        ? {
+                            ...l,
+                            name: firstLocation.name,
+                            address: firstLocation.address,
+                            location_type: firstLocation.location_type,
+                          }
+                        : l,
+                    ),
+                  },
             ),
           };
         }
@@ -698,13 +704,13 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-            ...e,
-            services: [
-              ...e.services,
-              { id: generateId(), service_key: "", quantity: 1, notes: "" },
-            ],
-          }
-          : e
+              ...e,
+              services: [
+                ...e.services,
+                { id: generateId(), service_key: "", quantity: 1, notes: "" },
+              ],
+            }
+          : e,
       ),
     }));
   };
@@ -715,10 +721,10 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-            ...e,
-            services: e.services.filter((s) => s.id !== serviceId),
-          }
-          : e
+              ...e,
+              services: e.services.filter((s) => s.id !== serviceId),
+            }
+          : e,
       ),
     }));
   };
@@ -729,12 +735,12 @@ function InquiryForm() {
       events: prev.events.map((e) =>
         e.id === eventId
           ? {
-            ...e,
-            services: e.services.map((s) =>
-              s.id === serviceId ? { ...s, [field]: value } : s
-            ),
-          }
-          : e
+              ...e,
+              services: e.services.map((s) =>
+                s.id === serviceId ? { ...s, [field]: value } : s,
+              ),
+            }
+          : e,
       ),
     }));
     // Clear service errors
@@ -802,14 +808,15 @@ function InquiryForm() {
           pincode: formData.primary_pincode,
           role: formData.primary_role.toUpperCase(),
         },
-        secondary_contact: showSecondary && formData.secondary_name
-          ? {
-            name: formData.secondary_name,
-            email: formData.secondary_email,
-            phone: formData.secondary_phone,
-            role: formData.secondary_role.toUpperCase(),
-          }
-          : null,
+        secondary_contact:
+          showSecondary && formData.secondary_name
+            ? {
+                name: formData.secondary_name,
+                email: formData.secondary_email,
+                phone: formData.secondary_phone,
+                role: formData.secondary_role.toUpperCase(),
+              }
+            : null,
       },
       project: {
         title: formData.project_title,
@@ -880,7 +887,7 @@ function InquiryForm() {
     // If we are NOT on the final step, stop immediately.
     if (currentStep !== totalSteps) {
       // Optional: You can make "Enter" move to the next step instead
-      // nextStep(); 
+      // nextStep();
       return;
     }
 
@@ -1135,8 +1142,9 @@ function InquiryForm() {
           {Array.from({ length: totalSteps }, (_, idx) => (
             <div
               key={idx}
-              className={`progress-step ${currentStep > idx + 1 ? "completed" : ""
-                } ${currentStep === idx + 1 ? "active" : ""}`}
+              className={`progress-step ${
+                currentStep > idx + 1 ? "completed" : ""
+              } ${currentStep === idx + 1 ? "active" : ""}`}
             >
               <span className="step-number">{idx + 1}</span>
               <span className="step-label">{getStepLabel(idx + 1)}</span>
@@ -1185,8 +1193,9 @@ function InquiryForm() {
               <h3 className="section-title">Primary Contact</h3>
               <div className="form-grid">
                 <div
-                  className={`form-group ${errors.primary_name ? "has-error" : ""
-                    }`}
+                  className={`form-group ${
+                    errors.primary_name ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_name">
                     Full Name <span className="required">*</span>
@@ -1205,8 +1214,9 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${errors.primary_role ? "has-error" : ""
-                    }`}
+                  className={`form-group ${
+                    errors.primary_role ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_role">
                     Role <span className="required">*</span>
@@ -1230,8 +1240,9 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${errors.primary_email ? "has-error" : ""
-                    }`}
+                  className={`form-group ${
+                    errors.primary_email ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_email">
                     Email Address <span className="required">*</span>
@@ -1250,8 +1261,9 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${errors.primary_phone ? "has-error" : ""
-                    }`}
+                  className={`form-group ${
+                    errors.primary_phone ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_phone">
                     Phone Number <span className="required">*</span>
@@ -1269,8 +1281,9 @@ function InquiryForm() {
                   )}
                 </div>
                 <div
-                  className={`form-group full-width ${errors.primary_street ? "has-error" : ""
-                    }`}
+                  className={`form-group full-width ${
+                    errors.primary_street ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_street">
                     Street Address <span className="required">*</span>
@@ -1289,8 +1302,9 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${errors.primary_city ? "has-error" : ""
-                    }`}
+                  className={`form-group ${
+                    errors.primary_city ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_city">
                     City <span className="required">*</span>
@@ -1309,8 +1323,9 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${errors.primary_state ? "has-error" : ""
-                    }`}
+                  className={`form-group ${
+                    errors.primary_state ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_state">
                     State <span className="required">*</span>
@@ -1329,8 +1344,9 @@ function InquiryForm() {
                 </div>
 
                 <div
-                  className={`form-group ${errors.primary_pincode ? "has-error" : ""
-                    }`}
+                  className={`form-group ${
+                    errors.primary_pincode ? "has-error" : ""
+                  }`}
                 >
                   <label htmlFor="primary_pincode">
                     Pincode <span className="required">*</span>
@@ -1354,16 +1370,46 @@ function InquiryForm() {
             </div>
             <div className="section-block">
               {/* 1. NEW: Replaced the <h3> with this Checkbox Toggle */}
-              <div className="section-header-toggle" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+              <div
+                className="section-header-toggle"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "20px",
+                }}
+              >
                 <input
                   type="checkbox"
                   id="toggleSecondary"
                   checked={showSecondary}
                   onChange={(e) => setShowSecondary(e.target.checked)}
-                  style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  style={{ cursor: "pointer", width: "16px", height: "16px" }}
                 />
-                <label htmlFor="toggleSecondary" style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: '1.17em', margin: 0 }}>
-                  Secondary Contact <span className="optional-tag" style={{ fontSize: '0.8em', fontWeight: 'normal', color: '#666', marginLeft: '8px', background: '#f0f0f0', padding: '2px 8px', borderRadius: '4px' }}>Optional</span>
+                <label
+                  htmlFor="toggleSecondary"
+                  style={{
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "1.17em",
+                    margin: 0,
+                  }}
+                >
+                  Secondary Contact{" "}
+                  <span
+                    className="optional-tag"
+                    style={{
+                      fontSize: "0.8em",
+                      fontWeight: "normal",
+                      color: "#666",
+                      marginLeft: "8px",
+                      background: "#f0f0f0",
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    Optional
+                  </span>
                 </label>
               </div>
 
@@ -1460,8 +1506,9 @@ function InquiryForm() {
                 {schemaData.project_types.map((project) => (
                   <div
                     key={project.key}
-                    className={`project-type-card ${formData.project_type === project.key ? "selected" : ""
-                      }`}
+                    className={`project-type-card ${
+                      formData.project_type === project.key ? "selected" : ""
+                    }`}
                     onClick={() =>
                       setFormData((prev) => ({
                         ...prev,
@@ -1482,8 +1529,9 @@ function InquiryForm() {
                 {schemaData.budget_ranges.map((range) => (
                   <label
                     key={range.label}
-                    className={`budget-card ${formData.budget_label === range.label ? "selected" : ""
-                      }`}
+                    className={`budget-card ${
+                      formData.budget_label === range.label ? "selected" : ""
+                    }`}
                   >
                     <input
                       type="radio"
@@ -1530,8 +1578,9 @@ function InquiryForm() {
             <div className="package-grid">
               {/* Custom Option */}
               <div
-                className={`package-card ${formData.selected_package_id === null ? "selected" : ""
-                  }`}
+                className={`package-card ${
+                  formData.selected_package_id === null ? "selected" : ""
+                }`}
                 onClick={() =>
                   setFormData((prev) => ({
                     ...prev,
@@ -1554,8 +1603,9 @@ function InquiryForm() {
               {availablePackages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className={`package-card ${formData.selected_package_id === pkg.id ? "selected" : ""
-                    }`}
+                  className={`package-card ${
+                    formData.selected_package_id === pkg.id ? "selected" : ""
+                  }`}
                   onClick={() =>
                     setFormData((prev) => ({
                       ...prev,
@@ -1723,29 +1773,58 @@ function InquiryForm() {
                     <div className="form-group">
                       <label>Start Time</label>
                       {(() => {
-                        const { hour, minute, period } = parseTime(event.time_start);
+                        const { hour, minute, period } = parseTime(
+                          event.time_start,
+                        );
                         return (
                           <div className="time-picker-group">
                             <select
                               value={hour}
-                              onChange={(e) => updateEvent(event.id, "time_start", stringifyTime(e.target.value, minute, period))}
+                              onChange={(e) =>
+                                updateEvent(
+                                  event.id,
+                                  "time_start",
+                                  stringifyTime(e.target.value, minute, period),
+                                )
+                              }
                             >
-                              {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                <option key={h} value={String(h).padStart(2, "0")}>{h}</option>
-                              ))}
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                (h) => (
+                                  <option
+                                    key={h}
+                                    value={String(h).padStart(2, "0")}
+                                  >
+                                    {h}
+                                  </option>
+                                ),
+                              )}
                             </select>
                             <span className="time-separator">:</span>
                             <select
                               value={minute}
-                              onChange={(e) => updateEvent(event.id, "time_start", stringifyTime(hour, e.target.value, period))}
+                              onChange={(e) =>
+                                updateEvent(
+                                  event.id,
+                                  "time_start",
+                                  stringifyTime(hour, e.target.value, period),
+                                )
+                              }
                             >
                               {["00", "15", "30", "45"].map((m) => (
-                                <option key={m} value={m}>{m}</option>
+                                <option key={m} value={m}>
+                                  {m}
+                                </option>
                               ))}
                             </select>
                             <select
                               value={period}
-                              onChange={(e) => updateEvent(event.id, "time_start", stringifyTime(hour, minute, e.target.value))}
+                              onChange={(e) =>
+                                updateEvent(
+                                  event.id,
+                                  "time_start",
+                                  stringifyTime(hour, minute, e.target.value),
+                                )
+                              }
                             >
                               <option value="AM">AM</option>
                               <option value="PM">PM</option>
@@ -1759,29 +1838,58 @@ function InquiryForm() {
                     <div className="form-group">
                       <label>End Time</label>
                       {(() => {
-                        const { hour, minute, period } = parseTime(event.time_end);
+                        const { hour, minute, period } = parseTime(
+                          event.time_end,
+                        );
                         return (
                           <div className="time-picker-group">
                             <select
                               value={hour}
-                              onChange={(e) => updateEvent(event.id, "time_end", stringifyTime(e.target.value, minute, period))}
+                              onChange={(e) =>
+                                updateEvent(
+                                  event.id,
+                                  "time_end",
+                                  stringifyTime(e.target.value, minute, period),
+                                )
+                              }
                             >
-                              {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                                <option key={h} value={String(h).padStart(2, "0")}>{h}</option>
-                              ))}
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                (h) => (
+                                  <option
+                                    key={h}
+                                    value={String(h).padStart(2, "0")}
+                                  >
+                                    {h}
+                                  </option>
+                                ),
+                              )}
                             </select>
                             <span className="time-separator">:</span>
                             <select
                               value={minute}
-                              onChange={(e) => updateEvent(event.id, "time_end", stringifyTime(hour, e.target.value, period))}
+                              onChange={(e) =>
+                                updateEvent(
+                                  event.id,
+                                  "time_end",
+                                  stringifyTime(hour, e.target.value, period),
+                                )
+                              }
                             >
                               {["00", "15", "30", "45"].map((m) => (
-                                <option key={m} value={m}>{m}</option>
+                                <option key={m} value={m}>
+                                  {m}
+                                </option>
                               ))}
                             </select>
                             <select
                               value={period}
-                              onChange={(e) => updateEvent(event.id, "time_end", stringifyTime(hour, minute, e.target.value))}
+                              onChange={(e) =>
+                                updateEvent(
+                                  event.id,
+                                  "time_end",
+                                  stringifyTime(hour, minute, e.target.value),
+                                )
+                              }
                             >
                               <option value="AM">AM</option>
                               <option value="PM">PM</option>
@@ -1834,7 +1942,7 @@ function InquiryForm() {
                                   event.id,
                                   location.id,
                                   "name",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               placeholder="e.g., The Oberoi Grand"
@@ -1849,7 +1957,7 @@ function InquiryForm() {
                                   event.id,
                                   location.id,
                                   "location_type",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                             >
@@ -1871,7 +1979,7 @@ function InquiryForm() {
                                   event.id,
                                   location.id,
                                   "activity",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               placeholder="e.g., Getting Ready, Ceremony"
@@ -1887,7 +1995,7 @@ function InquiryForm() {
                                   event.id,
                                   location.id,
                                   "address",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               placeholder="Full address"
@@ -1905,7 +2013,7 @@ function InquiryForm() {
                                   event.id,
                                   location.id,
                                   "city",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               placeholder="e.g., Mumbai"
@@ -1961,7 +2069,7 @@ function InquiryForm() {
                                   event.id,
                                   service.id,
                                   "service_key",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                             >
@@ -1977,15 +2085,15 @@ function InquiryForm() {
                           {service.service_key &&
                             ["HOURLY", "PER_PHOTO", "PER_EVENT"].includes(
                               availableServices.find(
-                                (s) => s.key === service.service_key
-                              )?.pricing_type
+                                (s) => s.key === service.service_key,
+                              )?.pricing_type,
                             ) && (
                               <div className="form-group">
                                 <label>
                                   {getQuantityLabel(
                                     availableServices.find(
-                                      (s) => s.key === service.service_key
-                                    )
+                                      (s) => s.key === service.service_key,
+                                    ),
                                   )}
                                 </label>
                                 <input
@@ -1996,7 +2104,7 @@ function InquiryForm() {
                                       event.id,
                                       service.id,
                                       "quantity",
-                                      parseInt(e.target.value) || 1
+                                      parseInt(e.target.value) || 1,
                                     )
                                   }
                                   min="1"
@@ -2014,7 +2122,7 @@ function InquiryForm() {
                                   event.id,
                                   service.id,
                                   "notes",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               placeholder="Special instructions"
@@ -2043,200 +2151,202 @@ function InquiryForm() {
           currentStep === 5) ||
           (!selectedProjectType?.supports_multiple_events &&
             currentStep === 4)) && (
-            <div className="form-step">
-              <div className="step-header">
-                <h2 className="step-title">Deliverables</h2>
-                <p className="step-description">
-                  How would you like to receive your final content?
-                </p>
-              </div>
+          <div className="form-step">
+            <div className="step-header">
+              <h2 className="step-title">Deliverables</h2>
+              <p className="step-description">
+                How would you like to receive your final content?
+              </p>
+            </div>
 
-              {/* Selected Services Summary */}
-              {formData.events.some((e) =>
-                e.services.some((s) => s.service_key)
-              ) && (
-                  <div className="section-block">
-                    <h3 className="section-title">Selected Services</h3>
-                    <div className="selected-services-summary">
-                      {(() => {
-                        // Aggregate all selected services across events
-                        const serviceMap = {};
-                        formData.events.forEach((event) => {
-                          event.services.forEach((svc) => {
-                            if (svc.service_key) {
-                              const svcInfo = availableServices.find(
-                                (s) => s.key === svc.service_key
+            {/* Selected Services Summary */}
+            {formData.events.some((e) =>
+              e.services.some((s) => s.service_key),
+            ) && (
+              <div className="section-block">
+                <h3 className="section-title">Selected Services</h3>
+                <div className="selected-services-summary">
+                  {(() => {
+                    // Aggregate all selected services across events
+                    const serviceMap = {};
+                    formData.events.forEach((event) => {
+                      event.services.forEach((svc) => {
+                        if (svc.service_key) {
+                          const svcInfo = availableServices.find(
+                            (s) => s.key === svc.service_key,
+                          );
+                          if (svcInfo) {
+                            if (!serviceMap[svc.service_key]) {
+                              serviceMap[svc.service_key] = {
+                                label: svcInfo.label,
+                                quantity: svc.quantity || 1,
+                                events: [event.event_type || "Event"],
+                              };
+                            } else {
+                              serviceMap[svc.service_key].quantity +=
+                                svc.quantity || 1;
+                              serviceMap[svc.service_key].events.push(
+                                event.event_type || "Event",
                               );
-                              if (svcInfo) {
-                                if (!serviceMap[svc.service_key]) {
-                                  serviceMap[svc.service_key] = {
-                                    label: svcInfo.label,
-                                    quantity: svc.quantity || 1,
-                                    events: [event.event_type || "Event"],
-                                  };
-                                } else {
-                                  serviceMap[svc.service_key].quantity +=
-                                    svc.quantity || 1;
-                                  serviceMap[svc.service_key].events.push(
-                                    event.event_type || "Event"
-                                  );
-                                }
-                              }
                             }
-                          });
-                        });
-                        return Object.entries(serviceMap).map(([key, info]) => (
-                          <div key={key} className="service-summary-item">
-                            <span className="service-check">✓</span>
-                            <span className="service-name">{info.label}</span>
-                            {info.quantity > 1 && (
-                              <span className="service-qty">×{info.quantity}</span>
-                            )}
-                          </div>
-                        ));
-                      })()}
-                    </div>
-                  </div>
-                )}
-
-              <div className="section-block">
-                <h3 className="section-title">Delivery Method</h3>
-                <div className="delivery-grid">
-                  {schemaData.delivery_methods.map((method) => (
-                    <label
-                      key={method.key}
-                      className={`delivery-card ${formData.delivery_method === method.key ? "selected" : ""
-                        }`}
-                    >
-                      <input
-                        type="radio"
-                        name="delivery_method"
-                        value={method.key}
-                        checked={formData.delivery_method === method.key}
-                        onChange={handleInputChange}
-                      />
-                      <span className="delivery-label">{method.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="section-block">
-                <h3 className="section-title">Photo Book</h3>
-                <div className="photobook-options">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="photobook_required"
-                      checked={formData.photobook_required}
-                      onChange={handleInputChange}
-                    />
-                    <span>I would like a printed photo book</span>
-                  </label>
-
-                  {formData.photobook_required && (
-                    <div
-                      className="form-group"
-                      style={{ maxWidth: "200px", marginTop: "1rem" }}
-                    >
-                      <label htmlFor="photobook_copies">Number of Copies</label>
-                      <input
-                        type="number"
-                        id="photobook_copies"
-                        name="photobook_copies"
-                        value={formData.photobook_copies}
-                        onChange={handleInputChange}
-                        min="1"
-                        max="10"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="section-block">
-                <h3 className="section-title">Video Outputs</h3>
-                <div className="video-outputs-grid">
-                  {schemaData.video_outputs.map((output) => {
-                    const selectedOutput = formData.video_outputs.find(
-                      (v) => v.key === output.key
-                    );
-                    const isSelected = !!selectedOutput;
-                    return (
-                      <div
-                        key={output.key}
-                        className={`video-output-card ${isSelected ? "selected" : ""
-                          }`}
-                      >
-                        <label className="video-output-checkbox-area">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleVideoOutputToggle(output.key)}
-                          />
-                          <div className="video-output-content">
-                            <span className="video-output-label">
-                              {output.label}
-                            </span>
-                            <span className="video-output-duration">
-                              {output.defaultDuration}
-                            </span>
-                          </div>
-                        </label>
-                        {isSelected && (
-                          <div className="video-output-count">
-                            <button
-                              type="button"
-                              className="count-btn"
-                              onClick={() =>
-                                handleVideoOutputCountChange(
-                                  output.key,
-                                  (selectedOutput.count || 1) - 1
-                                )
-                              }
-                              disabled={(selectedOutput.count || 1) <= 1}
-                            >
-                              −
-                            </button>
-                            <span className="count-value">
-                              {selectedOutput.count || 1}
-                            </span>
-                            <button
-                              type="button"
-                              className="count-btn"
-                              onClick={() =>
-                                handleVideoOutputCountChange(
-                                  output.key,
-                                  (selectedOutput.count || 1) + 1
-                                )
-                              }
-                            >
-                              +
-                            </button>
-                          </div>
+                          }
+                        }
+                      });
+                    });
+                    return Object.entries(serviceMap).map(([key, info]) => (
+                      <div key={key} className="service-summary-item">
+                        <span className="service-check">✓</span>
+                        <span className="service-name">{info.label}</span>
+                        {info.quantity > 1 && (
+                          <span className="service-qty">×{info.quantity}</span>
                         )}
                       </div>
-                    );
-                  })}
+                    ));
+                  })()}
                 </div>
               </div>
+            )}
 
-              <div
-                className="form-group full-width"
-                style={{ marginTop: "1.5rem" }}
-              >
-                <label htmlFor="additional_notes">Additional Notes</label>
-                <textarea
-                  id="additional_notes"
-                  name="additional_notes"
-                  value={formData.additional_notes}
-                  onChange={handleInputChange}
-                  placeholder="Any specific requirements, style preferences, or questions..."
-                  rows={4}
-                />
+            <div className="section-block">
+              <h3 className="section-title">Delivery Method</h3>
+              <div className="delivery-grid">
+                {schemaData.delivery_methods.map((method) => (
+                  <label
+                    key={method.key}
+                    className={`delivery-card ${
+                      formData.delivery_method === method.key ? "selected" : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="delivery_method"
+                      value={method.key}
+                      checked={formData.delivery_method === method.key}
+                      onChange={handleInputChange}
+                    />
+                    <span className="delivery-label">{method.label}</span>
+                  </label>
+                ))}
               </div>
             </div>
-          )}
+
+            <div className="section-block">
+              <h3 className="section-title">Photo Book</h3>
+              <div className="photobook-options">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="photobook_required"
+                    checked={formData.photobook_required}
+                    onChange={handleInputChange}
+                  />
+                  <span>I would like a printed photo book</span>
+                </label>
+
+                {formData.photobook_required && (
+                  <div
+                    className="form-group"
+                    style={{ maxWidth: "200px", marginTop: "1rem" }}
+                  >
+                    <label htmlFor="photobook_copies">Number of Copies</label>
+                    <input
+                      type="number"
+                      id="photobook_copies"
+                      name="photobook_copies"
+                      value={formData.photobook_copies}
+                      onChange={handleInputChange}
+                      min="1"
+                      max="10"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="section-block">
+              <h3 className="section-title">Video Outputs</h3>
+              <div className="video-outputs-grid">
+                {schemaData.video_outputs.map((output) => {
+                  const selectedOutput = formData.video_outputs.find(
+                    (v) => v.key === output.key,
+                  );
+                  const isSelected = !!selectedOutput;
+                  return (
+                    <div
+                      key={output.key}
+                      className={`video-output-card ${
+                        isSelected ? "selected" : ""
+                      }`}
+                    >
+                      <label className="video-output-checkbox-area">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleVideoOutputToggle(output.key)}
+                        />
+                        <div className="video-output-content">
+                          <span className="video-output-label">
+                            {output.label}
+                          </span>
+                          <span className="video-output-duration">
+                            {output.defaultDuration}
+                          </span>
+                        </div>
+                      </label>
+                      {isSelected && (
+                        <div className="video-output-count">
+                          <button
+                            type="button"
+                            className="count-btn"
+                            onClick={() =>
+                              handleVideoOutputCountChange(
+                                output.key,
+                                (selectedOutput.count || 1) - 1,
+                              )
+                            }
+                            disabled={(selectedOutput.count || 1) <= 1}
+                          >
+                            −
+                          </button>
+                          <span className="count-value">
+                            {selectedOutput.count || 1}
+                          </span>
+                          <button
+                            type="button"
+                            className="count-btn"
+                            onClick={() =>
+                              handleVideoOutputCountChange(
+                                output.key,
+                                (selectedOutput.count || 1) + 1,
+                              )
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div
+              className="form-group full-width"
+              style={{ marginTop: "1.5rem" }}
+            >
+              <label htmlFor="additional_notes">Additional Notes</label>
+              <textarea
+                id="additional_notes"
+                name="additional_notes"
+                value={formData.additional_notes}
+                onChange={handleInputChange}
+                placeholder="Any specific requirements, style preferences, or questions..."
+                rows={4}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Step: Review */}
         {currentStep === totalSteps && (
@@ -2269,13 +2379,26 @@ function InquiryForm() {
                       {formData.primary_street || "No street address"}
                     </span>
                     <span className="review-subvalue">
-                      {formData.primary_city} {formData.primary_state ? `, ${formData.primary_state}` : ""} {formData.primary_pincode ? `- ${formData.primary_pincode}` : ""}
+                      {formData.primary_city}{" "}
+                      {formData.primary_state
+                        ? `, ${formData.primary_state}`
+                        : ""}{" "}
+                      {formData.primary_pincode
+                        ? `- ${formData.primary_pincode}`
+                        : ""}
                     </span>
                   </div>
 
                   {/* Secondary Contact */}
                   {showSecondary && formData.secondary_name && (
-                    <div className="review-item" style={{ marginTop: '10px', borderTop: '1px dashed #eee', paddingTop: '10px' }}>
+                    <div
+                      className="review-item"
+                      style={{
+                        marginTop: "10px",
+                        borderTop: "1px dashed #eee",
+                        paddingTop: "10px",
+                      }}
+                    >
                       <span className="review-label">Secondary Contact</span>
                       <span className="review-value">
                         {formData.secondary_name} ({formData.secondary_role})
@@ -2294,14 +2417,18 @@ function InquiryForm() {
                 <div className="review-grid">
                   <div className="review-item">
                     <span className="review-label">Project Title</span>
-                    <span className="review-value">{formData.project_title}</span>
+                    <span className="review-value">
+                      {formData.project_title}
+                    </span>
                   </div>
 
                   <div className="review-item">
                     <span className="review-label">Project Type</span>
                     <span className="review-value">
                       {/* Look up label from schema, handling the new Pre-Wedding key */}
-                      {schemaData.project_types.find(t => t.key === formData.project_type)?.label || formData.project_type}
+                      {schemaData.project_types.find(
+                        (t) => t.key === formData.project_type,
+                      )?.label || formData.project_type}
                     </span>
                   </div>
 
@@ -2309,22 +2436,45 @@ function InquiryForm() {
                     <span className="review-label">Selected Package</span>
                     {formData.selected_package_id ? (
                       <>
-                        <span className="review-value" style={{ color: '#d97706', fontWeight: 'bold' }}>
-                          {availablePackages.find(p => p.id === formData.selected_package_id)?.name}
+                        <span
+                          className="review-value"
+                          style={{ color: "#d97706", fontWeight: "bold" }}
+                        >
+                          {
+                            availablePackages.find(
+                              (p) => p.id === formData.selected_package_id,
+                            )?.name
+                          }
                         </span>
                         <span className="review-subvalue">
-                          Price: ₹{Number(availablePackages.find(p => p.id === formData.selected_package_id)?.price || 0).toLocaleString()}
+                          Price: ₹
+                          {Number(
+                            availablePackages.find(
+                              (p) => p.id === formData.selected_package_id,
+                            )?.price || 0,
+                          ).toLocaleString()}
                         </span>
                       </>
                     ) : (
-                      <span className="review-value" style={{ fontStyle: 'italic', color: '#666' }}>Custom Package (Build Your Own)</span>
+                      <span
+                        className="review-value"
+                        style={{ fontStyle: "italic", color: "#666" }}
+                      >
+                        Custom Package (Build Your Own)
+                      </span>
                     )}
                   </div>
 
                   <div className="review-item">
                     <span className="review-label">Budget & Guests</span>
-                    <span className="review-value">{formData.budget_label}</span>
-                    <span className="review-subvalue">{formData.estimated_guest_count ? `${formData.estimated_guest_count} Guests` : 'Guests not specified'}</span>
+                    <span className="review-value">
+                      {formData.budget_label}
+                    </span>
+                    <span className="review-subvalue">
+                      {formData.estimated_guest_count
+                        ? `${formData.estimated_guest_count} Guests`
+                        : "Guests not specified"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -2334,73 +2484,216 @@ function InquiryForm() {
                   <h3>Events ({formData.events.length})</h3>
                   <div className="review-events">
                     {formData.events.map((event, idx) => (
-                      <div key={event.id} className="review-event-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
-
+                      <div
+                        key={event.id}
+                        className="review-event-item"
+                        style={{
+                          background: "#f8fafc",
+                          padding: "15px",
+                          borderRadius: "8px",
+                          marginBottom: "15px",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
                         {/* 1. Header: Type & Date */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
-                          <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '1.05em' }}>
-                            {schemaData.event_types.find((e) => e.key === event.event_type)?.label || "Event"}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "10px",
+                            borderBottom: "1px solid #e2e8f0",
+                            paddingBottom: "8px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontWeight: "700",
+                              color: "#1e293b",
+                              fontSize: "1.05em",
+                            }}
+                          >
+                            {schemaData.event_types.find(
+                              (e) => e.key === event.event_type,
+                            )?.label || "Event"}
                           </span>
 
                           {/* 👇 UPDATED: Formats YYYY-MM-DD to DD-MM-YYYY */}
-                          <span style={{ fontWeight: '600', color: '#64748b' }}>
-                            {event.date ? event.date.split('-').reverse().join('-') : ''}
+                          <span style={{ fontWeight: "600", color: "#64748b" }}>
+                            {event.date
+                              ? event.date.split("-").reverse().join("-")
+                              : ""}
                           </span>
                         </div>
 
                         {/* 2. Time (Uses your parseTime helper) */}
-                        <div style={{ fontSize: '0.9em', marginBottom: '12px', color: '#475569' }}>
-                          <strong style={{ marginRight: '5px' }}>Time:</strong>
-                          {parseTime(event.time_start).hour}:{parseTime(event.time_start).minute} {parseTime(event.time_start).period}
-                          {' — '}
-                          {parseTime(event.time_end).hour}:{parseTime(event.time_end).minute} {parseTime(event.time_end).period}
+                        <div
+                          style={{
+                            fontSize: "0.9em",
+                            marginBottom: "12px",
+                            color: "#475569",
+                          }}
+                        >
+                          <strong style={{ marginRight: "5px" }}>Time:</strong>
+                          {parseTime(event.time_start).hour}:
+                          {parseTime(event.time_start).minute}{" "}
+                          {parseTime(event.time_start).period}
+                          {" — "}
+                          {parseTime(event.time_end).hour}:
+                          {parseTime(event.time_end).minute}{" "}
+                          {parseTime(event.time_end).period}
                         </div>
 
                         {/* 3. Detailed Locations */}
-                        <div className="review-subsection" style={{ marginBottom: '12px' }}>
-                          <div style={{ fontSize: '0.75em', textTransform: 'uppercase', fontWeight: '700', color: '#94a3b8', marginBottom: '6px' }}>Locations</div>
-                          {event.locations.filter(l => l.name).length > 0 ? (
-                            event.locations.filter(l => l.name).map((loc) => (
-                              <div key={loc.id} style={{ marginBottom: '8px', paddingLeft: '10px', borderLeft: '3px solid #cbd5e1' }}>
-                                <div style={{ fontWeight: '600', fontSize: '0.95em' }}>
-                                  {loc.name} <span style={{ fontWeight: '400', color: '#64748b', fontSize: '0.9em' }}>({loc.location_type || 'Venue'})</span>
-                                </div>
+                        <div
+                          className="review-subsection"
+                          style={{ marginBottom: "12px" }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "0.75em",
+                              textTransform: "uppercase",
+                              fontWeight: "700",
+                              color: "#94a3b8",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            Locations
+                          </div>
+                          {event.locations.filter((l) => l.name).length > 0 ? (
+                            event.locations
+                              .filter((l) => l.name)
+                              .map((loc) => (
+                                <div
+                                  key={loc.id}
+                                  style={{
+                                    marginBottom: "8px",
+                                    paddingLeft: "10px",
+                                    borderLeft: "3px solid #cbd5e1",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontWeight: "600",
+                                      fontSize: "0.95em",
+                                    }}
+                                  >
+                                    {loc.name}{" "}
+                                    <span
+                                      style={{
+                                        fontWeight: "400",
+                                        color: "#64748b",
+                                        fontSize: "0.9em",
+                                      }}
+                                    >
+                                      ({loc.location_type || "Venue"})
+                                    </span>
+                                  </div>
 
-                                {/* Activity */}
-                                {loc.activity && <div style={{ fontSize: '0.85em', color: '#d97706', marginBottom: '2px' }}>Activity: {loc.activity}</div>}
+                                  {/* Activity */}
+                                  {loc.activity && (
+                                    <div
+                                      style={{
+                                        fontSize: "0.85em",
+                                        color: "#d97706",
+                                        marginBottom: "2px",
+                                      }}
+                                    >
+                                      Activity: {loc.activity}
+                                    </div>
+                                  )}
 
-                                {/* Address & City */}
-                                <div style={{ fontSize: '0.9em', color: '#64748b' }}>
-                                  {loc.address || ''}
-                                  {loc.address && loc.city ? ', ' : ''}
-                                  {loc.city || ''}
+                                  {/* Address & City */}
+                                  <div
+                                    style={{
+                                      fontSize: "0.9em",
+                                      color: "#64748b",
+                                    }}
+                                  >
+                                    {loc.address || ""}
+                                    {loc.address && loc.city ? ", " : ""}
+                                    {loc.city || ""}
+                                  </div>
                                 </div>
-                              </div>
-                            ))
+                              ))
                           ) : (
-                            <div style={{ fontSize: '0.9em', color: '#999', fontStyle: 'italic' }}>No specific location added</div>
+                            <div
+                              style={{
+                                fontSize: "0.9em",
+                                color: "#999",
+                                fontStyle: "italic",
+                              }}
+                            >
+                              No specific location added
+                            </div>
                           )}
                         </div>
 
                         {/* 4. Detailed Services */}
                         <div className="review-subsection">
-                          <div style={{ fontSize: '0.75em', textTransform: 'uppercase', fontWeight: '700', color: '#94a3b8', marginBottom: '6px' }}>Services</div>
-                          {event.services.filter(s => s.service_key).length > 0 ? (
-                            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.9em' }}>
-                              {event.services.filter(s => s.service_key).map((svc) => {
-                                const serviceLabel = availableServices.find(s => s.key === svc.service_key)?.label;
-                                return (
-                                  <li key={svc.id} style={{ marginBottom: '4px' }}>
-                                    <span style={{ fontWeight: '500' }}>{serviceLabel || svc.service_key}</span>
-                                    {svc.quantity > 1 && <strong> (x{svc.quantity})</strong>}
-                                    {svc.notes && <div style={{ fontSize: '0.85em', color: '#64748b', fontStyle: 'italic' }}>Note: "{svc.notes}"</div>}
-                                  </li>
-                                );
-                              })}
+                          <div
+                            style={{
+                              fontSize: "0.75em",
+                              textTransform: "uppercase",
+                              fontWeight: "700",
+                              color: "#94a3b8",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            Services
+                          </div>
+                          {event.services.filter((s) => s.service_key).length >
+                          0 ? (
+                            <ul
+                              style={{
+                                margin: 0,
+                                paddingLeft: "20px",
+                                fontSize: "0.9em",
+                              }}
+                            >
+                              {event.services
+                                .filter((s) => s.service_key)
+                                .map((svc) => {
+                                  const serviceLabel = availableServices.find(
+                                    (s) => s.key === svc.service_key,
+                                  )?.label;
+                                  return (
+                                    <li
+                                      key={svc.id}
+                                      style={{ marginBottom: "4px" }}
+                                    >
+                                      <span style={{ fontWeight: "500" }}>
+                                        {serviceLabel || svc.service_key}
+                                      </span>
+                                      {svc.quantity > 1 && (
+                                        <strong> (x{svc.quantity})</strong>
+                                      )}
+                                      {svc.notes && (
+                                        <div
+                                          style={{
+                                            fontSize: "0.85em",
+                                            color: "#64748b",
+                                            fontStyle: "italic",
+                                          }}
+                                        >
+                                          Note: "{svc.notes}"
+                                        </div>
+                                      )}
+                                    </li>
+                                  );
+                                })}
                             </ul>
-                          ) : <span style={{ fontSize: '0.9em', color: '#94a3b8', fontStyle: 'italic' }}>No specific services added</span>}
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: "0.9em",
+                                color: "#94a3b8",
+                                fontStyle: "italic",
+                              }}
+                            >
+                              No specific services added
+                            </span>
+                          )}
                         </div>
-
                       </div>
                     ))}
                   </div>
@@ -2415,7 +2708,9 @@ function InquiryForm() {
                   <div className="review-item">
                     <span className="review-label">Delivery Method</span>
                     <span className="review-value">
-                      {schemaData.delivery_methods.find(d => d.key === formData.delivery_method)?.label || "Not specified"}
+                      {schemaData.delivery_methods.find(
+                        (d) => d.key === formData.delivery_method,
+                      )?.label || "Not specified"}
                     </span>
                   </div>
 
@@ -2423,32 +2718,68 @@ function InquiryForm() {
                   {formData.photobook_required && (
                     <div className="review-item">
                       <span className="review-label">Photo Book</span>
-                      <span className="review-value">{formData.photobook_copies} Copies</span>
+                      <span className="review-value">
+                        {formData.photobook_copies} Copies
+                      </span>
                     </div>
                   )}
 
                   {/* 3. Video Outputs (Formatted as a List) */}
-                  {formData.video_outputs && formData.video_outputs.length > 0 && (
-                    <div className="review-item">
-                      <span className="review-label">Video Outputs</span>
-                      <ul style={{ margin: 0, paddingLeft: '15px', fontSize: '0.95em' }}>
-                        {formData.video_outputs.map((v, index) => (
-                          <li key={index}>
-                            {/* Find label, or use key if label not found */}
-                            {schemaData.video_outputs.find(vo => vo.key === v.key)?.label || v.key}
-                            {v.count > 1 && ` (x${v.count})`}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {formData.video_outputs &&
+                    formData.video_outputs.length > 0 && (
+                      <div className="review-item">
+                        <span className="review-label">Video Outputs</span>
+                        <ul
+                          style={{
+                            margin: 0,
+                            paddingLeft: "15px",
+                            fontSize: "0.95em",
+                          }}
+                        >
+                          {formData.video_outputs.map((v, index) => (
+                            <li key={index}>
+                              {/* Find label, or use key if label not found */}
+                              {schemaData.video_outputs.find(
+                                (vo) => vo.key === v.key,
+                              )?.label || v.key}
+                              {v.count > 1 && ` (x${v.count})`}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
 
                 {/* 4. NEW: Additional Notes Display */}
                 {formData.additional_notes && (
-                  <div style={{ marginTop: '20px', background: '#fffbeb', padding: '15px', borderRadius: '8px', border: '1px solid #fcd34d' }}>
-                    <span className="review-label" style={{ color: '#b45309', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Additional Notes</span>
-                    <p style={{ margin: '0', fontSize: '0.95em', color: '#78350f', whiteSpace: 'pre-wrap' }}>
+                  <div
+                    style={{
+                      marginTop: "20px",
+                      background: "#fffbeb",
+                      padding: "15px",
+                      borderRadius: "8px",
+                      border: "1px solid #fcd34d",
+                    }}
+                  >
+                    <span
+                      className="review-label"
+                      style={{
+                        color: "#b45309",
+                        fontWeight: "bold",
+                        display: "block",
+                        marginBottom: "5px",
+                      }}
+                    >
+                      Additional Notes
+                    </span>
+                    <p
+                      style={{
+                        margin: "0",
+                        fontSize: "0.95em",
+                        color: "#78350f",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
                       {formData.additional_notes}
                     </p>
                   </div>
@@ -2456,8 +2787,7 @@ function InquiryForm() {
               </div>
             </div>
           </div>
-        )
-        }
+        )}
 
         {/* Navigation */}
         <div className="form-navigation">
@@ -2499,16 +2829,16 @@ function InquiryForm() {
             </button>
           )}
         </div>
-      </form >
+      </form>
 
       {/* Footer */}
-      < footer className="inquiry-footer" >
+      <footer className="inquiry-footer">
         {/* <p>
           Questions? Reach out at{" "}
           <a href="mailto:hello@haytham.com">hello@haytham.com</a>
         </p> */}
-      </footer >
-    </div >
+      </footer>
+    </div>
   );
 }
 
